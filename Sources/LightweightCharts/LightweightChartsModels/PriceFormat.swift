@@ -79,11 +79,17 @@ public struct BuiltInPriceFormat: Codable {
      * Minimal step of the price. This value shouldn't have more decimal digits than the precision
      */
     public var minMove: Double?
+
+    /**
+     * Optional base used for built-in price formatting.
+     */
+    public var base: Double?
     
-    public init(type: PriceFormatBuilInType, precision: Double?, minMove: Double?) {
+    public init(type: PriceFormatBuilInType, precision: Double? = nil, minMove: Double? = nil, base: Double? = nil) {
         self.type = type
         self.precision = precision
         self.minMove = minMove
+        self.base = base
     }
     
 }

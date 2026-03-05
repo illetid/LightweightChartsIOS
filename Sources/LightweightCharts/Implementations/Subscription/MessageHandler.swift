@@ -6,6 +6,8 @@ protocol MessageHandlerDelegate: AnyObject {
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveClickWithParameters parameters: MouseEventParams)
     func messageHandler(_ messageHandler: MessageHandler,
+                        didReceiveDblClickWithParameters parameters: MouseEventParams)
+    func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveCrosshairMoveWithParameters parameters: MouseEventParams)
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveVisibleTimeRangeChangeWithParameters parameters: TimeRange?)
@@ -44,6 +46,10 @@ extension MessageHandler: WKScriptMessageHandler {
             case .click:
                 if let parameters: MouseEventParams = try? decode(messageBodyJSONString) {
                     delegate?.messageHandler(self, didReceiveClickWithParameters: parameters)
+                }
+            case .dblClick:
+                if let parameters: MouseEventParams = try? decode(messageBodyJSONString) {
+                    delegate?.messageHandler(self, didReceiveDblClickWithParameters: parameters)
                 }
             case .crosshairMove:
                 if let parameters: MouseEventParams = try? decode(messageBodyJSONString) {

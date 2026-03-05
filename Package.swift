@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "LightweightCharts",
     platforms: [
-        .iOS(.v10)
+        .iOS(.v13)
     ],
     products: [
         .library(
@@ -18,7 +18,10 @@ let package = Package(
         .target(
             name: "LightweightCharts",
             dependencies: [],
-            exclude: ["Extensions/Bundle+Resources.swift"],
+            exclude: [
+                "Extensions/Bundle+Resources.swift",
+                "Assets/lightweight-charts.js.backup"
+            ],
             resources: [
                 .process("Assets/content-setup.js"),
                 .process("Assets/lightweight-charts.js"),

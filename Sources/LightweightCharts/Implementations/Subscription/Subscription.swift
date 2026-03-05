@@ -2,6 +2,7 @@ import Foundation
 
 enum Subscription: String {
     case click = "ClickSubscriber"
+    case dblClick = "DblClickSubscriber"
     case crosshairMove = "CrosshairMoveSubscriber"
     case visibleTimeRangeChange = "VisibleTimeRangeChangeSubscriber"
     case visibleLogicalRangeChange = "VisibleLogicalRangeChangeSubscriber"
@@ -11,6 +12,8 @@ enum Subscription: String {
         switch self {
         case .click:
             return "Click"
+        case .dblClick:
+            return "DblClick"
         case .crosshairMove:
             return "CrosshairMove"
         case .visibleTimeRangeChange:

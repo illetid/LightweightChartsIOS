@@ -1,6 +1,6 @@
 import Foundation
 
-public struct BaselineData: SingleValueSeriesData {
+public struct BaselineData: SingleValueSeriesData, Equatable {
     
     /**
      * The time of the data.

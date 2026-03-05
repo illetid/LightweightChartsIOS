@@ -1,8 +1,17 @@
 import Foundation
+import UIKit
 
 public enum SurfaceColor {
     case solid(color: ChartColor)
     case verticalGradient(topColor: ChartColor, bottomColor: ChartColor)
+    
+    public static func solid(_ color: UIColor) -> SurfaceColor {
+        return .solid(color: ChartColor(color))
+    }
+    
+    public static func solid(_ color: String) -> SurfaceColor {
+        return .solid(color: ChartColor(rawValue: color))
+    }
     
     public var type: ColorType {
         switch self {
@@ -54,5 +63,12 @@ extension SurfaceColor: Codable {
             try container.encode(topColor, forKey: .topColor)
             try container.encode(bottomColor, forKey: .bottomColor)
         }
+    }
+}
+
+// MARK: - ExpressibleByStringLiteral
+extension SurfaceColor: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self = .solid(color: ChartColor(rawValue: value))
     }
 }

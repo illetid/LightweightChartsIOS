@@ -15,6 +15,10 @@ public struct TimeScaleOptions {
     public var timeVisible: Bool?
     public var secondsVisible: Bool?
     public var shiftVisibleRangeOnNewBar: Bool?
+    public var rightOffsetPixels: Double?
+    public var allowShiftVisibleRangeOnWhitespaceReplacement: Bool?
+    public var tickMarkMaxCharacterLength: Int?
+    public var minimumHeight: Double?
     public var ticksVisible: Bool?
     
     public var tickMarkFormatter: JavaScriptMethod<TickMarkFormatterParameters, String>? {
@@ -40,6 +44,10 @@ public struct TimeScaleOptions {
                 timeVisible: Bool? = nil,
                 secondsVisible: Bool? = nil,
                 shiftVisibleRangeOnNewBar: Bool? = nil,
+                rightOffsetPixels: Double? = nil,
+                allowShiftVisibleRangeOnWhitespaceReplacement: Bool? = nil,
+                tickMarkMaxCharacterLength: Int? = nil,
+                minimumHeight: Double? = nil,
                 ticksVisible: Bool? = nil,
                 tickMarkFormatter: JavaScriptMethod<TickMarkFormatterParameters, String>? = nil) {
         self.rightOffset = rightOffset
@@ -55,6 +63,10 @@ public struct TimeScaleOptions {
         self.timeVisible = timeVisible
         self.secondsVisible = secondsVisible
         self.shiftVisibleRangeOnNewBar = shiftVisibleRangeOnNewBar
+        self.rightOffsetPixels = rightOffsetPixels
+        self.allowShiftVisibleRangeOnWhitespaceReplacement = allowShiftVisibleRangeOnWhitespaceReplacement
+        self.tickMarkMaxCharacterLength = tickMarkMaxCharacterLength
+        self.minimumHeight = minimumHeight
         self.ticksVisible = ticksVisible
         self.tickMarkFormatter = tickMarkFormatter
     }
@@ -78,6 +90,10 @@ extension TimeScaleOptions: Codable {
         case timeVisible
         case secondsVisible
         case shiftVisibleRangeOnNewBar
+        case rightOffsetPixels
+        case allowShiftVisibleRangeOnWhitespaceReplacement
+        case tickMarkMaxCharacterLength
+        case minimumHeight
     }
     
 }

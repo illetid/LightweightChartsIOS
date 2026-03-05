@@ -1,11 +1,22 @@
 import UIKit
 import LightweightCharts
 
+/// Demonstrates the v5 text watermark plugin API.
+///
+/// This example uses the new `TextWatermarkPlugin` API introduced in v5,
+/// which replaces the deprecated `ChartOptions.watermark` property.
+///
+/// The plugin is created using `chart.createTextWatermarkPlugin(paneIndex:options:)` and
+/// provides explicit control over the watermark lifecycle.
+///
+/// For backward compatibility, the legacy `ChartOptions.watermark` property is still
+/// supported but deprecated. See the migration guide for details.
 class CustomWatermarkViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var series: AreaSeries!
-    
+    private var watermark: TextWatermarkPlugin<Chart>?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         if #available(iOS 13.0, *) {
@@ -13,21 +24,13 @@ class CustomWatermarkViewController: UIViewController {
         } else {
             view.backgroundColor = .white
         }
-        
+
         setupUI()
         setupData()
     }
-    
+
     private func setupUI() {
         let options = ChartOptions(
-            watermark: WatermarkOptions(
-                color: "rgba(171, 71, 188, 0.5)",
-                visible: true,
-                text: "Watermark Example",
-                fontSize: 24,
-                horizontalAlignment: .center,
-                verticalAlignment: .center
-            ),
             layout: LayoutOptions(background: .solid(color: "#ffffff"), textColor: "#333"),
             rightPriceScale: VisiblePriceScaleOptions(scaleMargins: PriceScaleMargins(top: 0.1, bottom: 0.2)),
             grid: GridOptions(
@@ -35,7 +38,7 @@ class CustomWatermarkViewController: UIViewController {
                 horizontalLines: GridLineOptions(color: "#ffffff")
             )
         )
-        let chart = LightweightCharts(options: options)
+        let chart = LightweightCharts(options: options, loadDelegate: self)
         view.addSubview(chart)
         chart.translatesAutoresizingMaskIntoConstraints = false
         if #available(iOS 11.0, *) {
@@ -219,6 +222,27 @@ class CustomWatermarkViewController: UIViewController {
         ]
         series.setData(data: data)
         self.series = series
+    }
+
+}
+
+// MARK: - LightweightChartsDelegate
+extension CustomWatermarkViewController: LightweightChartsDelegate {
+
+    func lightweightChartsDidLoad(_ lightweightCharts: LightweightCharts) {
+        // Create the text watermark using the v5 plugin API after the chart loads
+        let watermarkOptions = TextWatermarkOptions(
+            horizontalAlignment: .center,
+            verticalAlignment: .center,
+            text: "Watermark Example",
+            color: "rgba(171, 71, 188, 0.5)",
+            fontSize: 24
+        )
+        watermark = chart.createTextWatermarkPlugin(paneIndex: 0, options: watermarkOptions)
+    }
+
+    func lightweightCharts(_ lightweightCharts: LightweightCharts, didFailLoadWithError error: Error) {
+        // Handle error
     }
 
 }

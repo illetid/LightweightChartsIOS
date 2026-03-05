@@ -139,7 +139,7 @@ public struct MouseEventParams: Codable {
 }
 
 // MARK: - EventTime Cadable
-extension EventTime: Codable {
+extension EventTime: Codable, Equatable {
     
     // MARK: Decodable
     
@@ -174,7 +174,7 @@ extension EventTime: Codable {
 }
 
 // MARK: - EventPrices Cadable
-extension EventPrices: Codable {
+extension EventPrices: Codable, Equatable {
     
     // MARK: Decodable
     

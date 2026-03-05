@@ -1,6 +1,19 @@
 import UIKit
 import LightweightCharts
 
+/// Demonstrates the backward-compatible markers API.
+///
+/// This example intentionally uses the legacy `series.setMarkers(data:)` API
+/// to prove backward compatibility with the v4 API after the v5 migration.
+///
+/// The compatibility layer internally uses the v5 `createSeriesMarkers` primitive,
+/// storing a reference to the plugin on the series object as `_lwcMarkersPlugin`.
+/// This allows existing code using `setMarkers` to continue working without changes.
+///
+/// For new code, consider using the explicit `SeriesMarkersPlugin` API which provides
+/// more control over the plugin lifecycle.
+///
+/// See `MarkersPluginViewController` for an example of the new v5 plugin API.
 class MarkersViewController: UIViewController {
 
     private var chart: LightweightCharts!
@@ -75,18 +88,20 @@ class MarkersViewController: UIViewController {
     
 }
 
-
-// MARK: - MessageHandlerDelegate
+// MARK: - LightweightChartsDelegate
 extension MarkersViewController: LightweightChartsDelegate {
-    
+
     func lightweightChartsDidLoad(_ lightweightCharts: LightweightCharts) {
         let (data, markers) = generateData()
 
         let series = chart.addBarSeries(options: nil)
         self.series = series
         series.setData(data: data)
+
+        // Uses the backward-compatible setMarkers API.
+        // Internally, this creates a v5 createSeriesMarkers plugin if one doesn't exist,
+        // or updates the existing one on subsequent calls.
         series.setMarkers(data: markers)
-        
     }
     
     func lightweightCharts(_ lightweightCharts: LightweightCharts, didFailLoadWithError error: Error) {

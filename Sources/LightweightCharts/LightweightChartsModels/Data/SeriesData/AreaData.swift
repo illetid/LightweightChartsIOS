@@ -1,7 +1,7 @@
 import Foundation
 
 
-public struct AreaData: SingleValueSeriesData {
+public struct AreaData: SingleValueSeriesData, Equatable {
     
     /**
      * The time of the data.

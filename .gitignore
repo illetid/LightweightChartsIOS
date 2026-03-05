@@ -11,3 +11,7 @@ Pods/
 xcuserdata/
 DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+Example/build/
+.agents
+.claude
+.ralph

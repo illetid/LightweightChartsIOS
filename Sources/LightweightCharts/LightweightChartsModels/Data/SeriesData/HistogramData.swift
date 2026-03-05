@@ -13,7 +13,7 @@ protocol HistogramSeriesData: SingleValueSeriesData {
 }
 
 // MARK: -
-public struct HistogramData: HistogramSeriesData {
+public struct HistogramData: HistogramSeriesData, Equatable {
     
     public var color: ChartColor?
     public var time: Time

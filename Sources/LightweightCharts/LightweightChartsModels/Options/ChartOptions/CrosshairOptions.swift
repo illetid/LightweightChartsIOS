@@ -9,6 +9,8 @@ import Foundation
 public enum CrosshairMode: Int, Codable {
     case normal
     case magnet
+    case hidden
+    case magnetOHLC
 }
 
 // MARK: -
@@ -31,13 +33,20 @@ public struct CrosshairOptions: Codable {
      Options of the crosshair horizontal line
      */
     public var horzLine: CrosshairLineOptions?
+
+    /**
+     Prevent crosshair snapping to hidden series by their internal indices.
+     */
+    public var doNotSnapToHiddenSeriesIndices: Bool?
     
     public init(mode: CrosshairMode? = nil,
                 vertLine: CrosshairLineOptions? = nil,
-                horzLine: CrosshairLineOptions? = nil) {
+                horzLine: CrosshairLineOptions? = nil,
+                doNotSnapToHiddenSeriesIndices: Bool? = nil) {
         self.mode = mode
         self.vertLine = vertLine
         self.horzLine = horzLine
+        self.doNotSnapToHiddenSeriesIndices = doNotSnapToHiddenSeriesIndices
     }
     
 }

@@ -12,7 +12,7 @@ protocol LineSeriesData: SingleValueSeriesData {
 /**
 * Structure describing single data item for series of type Line or Area
 */
-public struct LineData: LineSeriesData {
+public struct LineData: LineSeriesData, Equatable {
     
     public var time: Time
     public var value: Double?

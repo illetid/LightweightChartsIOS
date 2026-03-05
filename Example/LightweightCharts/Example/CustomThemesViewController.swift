@@ -18,8 +18,6 @@ class CustomThemesViewController: UIViewController {
             switch self {
             case .dark:
                 return ChartOptions(
-                    watermark: WatermarkOptions(color: "rgba(0, 0, 0, 0)"),
-                    // TODO: need lineColor
                     layout: LayoutOptions(background: .solid(color: "#2B2B43"), textColor: "#D9D9D9"),
                     crosshair: CrosshairOptions(
                         vertLine: CrosshairLineOptions(color: "#758696"),
@@ -32,8 +30,6 @@ class CustomThemesViewController: UIViewController {
                 )
             case .light:
                 return ChartOptions(
-                    watermark: WatermarkOptions(color: "rgba(0, 0, 0, 0)"),
-                    // TODO: need lineColor
                     layout: LayoutOptions(background: .solid(color: "#FFFFFF"), textColor: "#191919"),
                     crosshair: CrosshairOptions(
                         vertLine: CrosshairLineOptions(color: "#758696"),
@@ -43,6 +39,21 @@ class CustomThemesViewController: UIViewController {
                         verticalLines: GridLineOptions(visible: false),
                         horizontalLines: GridLineOptions(color: "#f0f3fa")
                     )
+                )
+            }
+        }
+        
+        var watermarkOptions: TextWatermarkOptions {
+            switch self {
+            case .dark:
+                return TextWatermarkOptions(visible: true, horizontalAlignment: .center, verticalAlignment: .center, text: "Dark Theme",
+                    color: "rgba(217, 217, 217, 0.2)",
+                    fontSize: 24
+                )
+            case .light:
+                return TextWatermarkOptions(visible: true, horizontalAlignment: .center, verticalAlignment: .center, text: "Light Theme",
+                    color: "rgba(25, 25, 25, 0.2)",
+                    fontSize: 24
                 )
             }
         }
@@ -67,6 +78,7 @@ class CustomThemesViewController: UIViewController {
     
     private var chart: LightweightCharts!
     private var series: AreaSeries!
+    private var watermark: TextWatermarkPlugin<Chart>?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -78,7 +90,8 @@ class CustomThemesViewController: UIViewController {
         
         setupUI()
         setupData()
-        syncToTheme(.dark)
+        
+        chart.loadDelegate = self
     }
     
     private func setupUI() {
@@ -98,7 +111,12 @@ class CustomThemesViewController: UIViewController {
             ])
         }
         
+        var layout = LayoutOptions()
+        // Example-only setting: disabling attribution may require alternative NOTICE/link placement.
+        layout.attributionLogo = false
+
         let options = ChartOptions(
+            layout: layout,
             rightPriceScale: VisiblePriceScaleOptions(borderVisible: false),
             timeScale: TimeScaleOptions(borderVisible: false)
         )
@@ -292,10 +310,26 @@ class CustomThemesViewController: UIViewController {
     private func syncToTheme(_ theme: Theme) {
         chart.applyOptions(options: theme.chartOptions)
         series.applyOptions(options: theme.seriesOptions)
+        
+        if let watermark = watermark {
+            watermark.applyOptions(options: theme.watermarkOptions)
+        } else {
+            watermark = chart.createTextWatermarkPlugin(paneIndex: 0, options: theme.watermarkOptions)
+        }
     }
     
     @objc private func valueChanged(_ sender: UISegmentedControl) {
         syncToTheme(Theme.allCases[sender.selectedSegmentIndex])
     }
     
+}
+
+extension CustomThemesViewController: LightweightChartsDelegate {
+    func lightweightChartsDidLoad(_ lightweightCharts: LightweightCharts) {
+        syncToTheme(.dark)
+    }
+    
+    func lightweightCharts(_ lightweightCharts: LightweightCharts, didFailLoadWithError error: Error) {
+        // Handle error
+    }
 }

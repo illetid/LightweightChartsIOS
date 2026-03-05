@@ -2,7 +2,7 @@ import Foundation
 
 public class PriceLine: JavaScriptObject {
     
-    let jsName = "priceLine" + .uniqueString
+    public let jsName = "priceLine" + .uniqueString
     weak var context: JavaScriptEvaluator?
     
     init(context: JavaScriptEvaluator) {

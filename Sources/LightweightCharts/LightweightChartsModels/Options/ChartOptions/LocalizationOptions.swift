@@ -34,6 +34,18 @@ public struct LocalizationOptions {
             timeFormatterJSFunction = newValue != nil ? JSFunction(function: newValue!) : nil
         }
     }
+
+    /**
+     * User-defined function for percentage value formatting.
+     */
+    public var percentageFormatter: JavaScriptMethod<BarPrice, String>? {
+        get {
+            percentageFormatterJSFunction?.function
+        }
+        set {
+            percentageFormatterJSFunction = newValue != nil ? JSFunction(function: newValue!) : nil
+        }
+    }
     
     /**
      * Date formatting string.
@@ -45,15 +57,18 @@ public struct LocalizationOptions {
     
     var priceFormatterJSFunction: JSFunction<BarPrice, String>?
     var timeFormatterJSFunction: JSFunction<EventTime, String>?
+    var percentageFormatterJSFunction: JSFunction<BarPrice, String>?
     
     public init(locale: String? = nil,
                 dateFormat: String? = nil,
                 priceFormatter: JavaScriptMethod<BarPrice, String>? = nil,
-                timeFormatter: JavaScriptMethod<EventTime, String>? = nil) {
+                timeFormatter: JavaScriptMethod<EventTime, String>? = nil,
+                percentageFormatter: JavaScriptMethod<BarPrice, String>? = nil) {
         self.locale = locale
         self.dateFormat = dateFormat
         self.priceFormatter = priceFormatter
         self.timeFormatter = timeFormatter
+        self.percentageFormatter = percentageFormatter
     }
     
 }

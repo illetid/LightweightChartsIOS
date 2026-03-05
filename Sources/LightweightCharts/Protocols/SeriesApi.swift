@@ -118,7 +118,7 @@ public protocol SeriesApi: AnyObject {
      * Returns an list of series markers.
      * - Parameter completion: list of series markers
      */
-    func markers(completion: @escaping (SeriesMarker?) -> Void)
+    func markers(completion: @escaping ([SeriesMarker]?) -> Void)
 
     /**
      * Creates a new price line
@@ -131,6 +131,11 @@ public protocol SeriesApi: AnyObject {
      * - Parameter line: line to remove
      */
     func removePriceLine(line: PriceLine)
+
+    /**
+     * Returns all currently attached price lines for this series.
+     */
+    func priceLines(completion: @escaping ([PriceLine]?) -> Void)
     
     /**
      * Returns the type of this series

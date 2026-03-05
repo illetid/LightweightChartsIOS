@@ -7,7 +7,7 @@ protocol CandlestickSeriesData : OhlcData {
 }
 
 // MARK: -
-public struct CandlestickData : CandlestickSeriesData {
+public struct CandlestickData : CandlestickSeriesData, Equatable {
     public var time: Time
     public var open: Double?
     public var high: Double?

@@ -4,7 +4,7 @@ public extension SeriesApi where Self: SeriesObject {
     
     func priceFormatter() -> PriceFormatterApi {
         let priceFormatter = PriceFormatter(context: context)
-        let script = "var \(priceFormatter.jsName) = \(jsName).priceFormatter();"
+        let script = "window['\(priceFormatter.jsName)'] = \(jsName).priceFormatter();"
         context.evaluateScript(script) { _, _ in
         }
         return priceFormatter
@@ -45,7 +45,7 @@ public extension SeriesApi where Self: SeriesObject {
     
     func priceScale() -> PriceScaleApi {
         let priceScale = PriceScale(context: context)
-        let script = "var \(priceScale.jsName) = \(jsName).priceScale();"
+        let script = "window['\(priceScale.jsName)'] = \(jsName).priceScale();"
         context.evaluateScript(script) { _, _ in
         }
         return priceScale
@@ -54,23 +54,23 @@ public extension SeriesApi where Self: SeriesObject {
     func setData(data: [TickValue]) {
         setSeriesData(data)
     }
-    
-    func update(bar: TickValue) {
-        updateSeriesBar(bar)
-    }
-    
+
     func setData(data: [WhitespaceData]) {
         setSeriesData(data)
     }
-    
-    func update(bar: WhitespaceData) {
-        updateSeriesBar(bar)
-    }
-    
+
     func setData(data: [SeriesDataType<TickValue>]) {
         setSeriesData(data)
     }
-    
+
+    func update(bar: TickValue) {
+        updateSeriesBar(bar)
+    }
+
+    func update(bar: WhitespaceData) {
+        updateSeriesBar(bar)
+    }
+
     func update(bar: SeriesDataType<TickValue>) {
         updateSeriesBar(bar)
     }
@@ -82,19 +82,30 @@ public extension SeriesApi where Self: SeriesObject {
     }
     
     func setMarkers(data: [SeriesMarker]) {
-        let script = "\(jsName).setMarkers(\(data.jsonString));"
+        // v5 compatibility: use createSeriesMarkers primitive
+        // Store plugin reference on series object as _lwcMarkersPlugin
+        let script = """
+        if (typeof \(jsName)._lwcMarkersPlugin === 'undefined') {
+            \(jsName)._lwcMarkersPlugin = LightweightCharts.createSeriesMarkers(\(jsName), \(data.jsonString));
+        } else {
+            \(jsName)._lwcMarkersPlugin.setMarkers(\(data.jsonString));
+        }
+        """
         context.evaluateScript(script, completion: nil)
     }
-    
-    func markers(completion: @escaping (SeriesMarker?) -> Void) {
-        let script = "\(jsName).markers();"
+
+    func markers(completion: @escaping ([SeriesMarker]?) -> Void) {
+        // v5 compatibility: query markers from internal plugin if it exists
+        let script = """
+        (typeof \(jsName)._lwcMarkersPlugin !== 'undefined') ? \(jsName)._lwcMarkersPlugin.markers() : [];
+        """
         context.decodedResult(forScript: script, completion: completion)
     }
     
     func createPriceLine(options: PriceLineOptions?) -> PriceLine {
         let priceLine = PriceLine(context: context)
         let options = options ?? PriceLineOptions()
-        let script = "var \(priceLine.jsName) = \(jsName).createPriceLine(\(options.jsonString));"
+        let script = "window['\(priceLine.jsName)'] = \(jsName).createPriceLine(\(options.jsonString));"
         context.evaluateScript(script, completion: nil)
         return priceLine
     }
@@ -103,6 +114,26 @@ public extension SeriesApi where Self: SeriesObject {
         let script = "\(jsName).removePriceLine(\(line.jsName));"
         context.evaluateScript(script, completion: nil)
     }
+
+    func priceLines(completion: @escaping ([PriceLine]?) -> Void) {
+        let countScript = "\(jsName).priceLines().length;"
+        context.evaluateScript(countScript) { [self] result, _ in
+            guard let count = (result as? NSNumber)?.intValue else {
+                completion(nil)
+                return
+            }
+
+            var lines: [PriceLine] = []
+            for index in 0..<count {
+                let priceLine = PriceLine(context: self.context)
+                let createScript = "window['\(priceLine.jsName)'] = \(self.jsName).priceLines()[\(index)];"
+                self.context.evaluateScript(createScript, completion: nil)
+                lines.append(priceLine)
+            }
+
+            completion(lines)
+        }
+    }
     
     func seriesType(completion: @escaping (SeriesType?) -> Void) {
         let script = "\(jsName).seriesType();"
@@ -110,14 +141,61 @@ public extension SeriesApi where Self: SeriesObject {
     }
     
     private func setSeriesData<T: SeriesData>(_ data: [T]) {
+        // Update last data time tracking
+        if let last = data.last {
+            _lastDataTime = last.time
+        } else {
+            _lastDataTime = nil
+        }
+
         let script = "\(jsName).setData(\(data.jsonString));"
         context.evaluateScript(script, completion: nil)
     }
-    
+
     private func updateSeriesBar<T: SeriesData>(_ bar: T) {
+        // Update last data time tracking
+        _lastDataTime = bar.time
+
         let script = "\(jsName).update(\(bar.jsonString));"
         context.evaluateScript(script, completion: nil)
     }
-    
-    
+
+    // MARK: - Plugin Factories
+
+    /// Creates a new series markers plugin attached to this series.
+    ///
+    /// The plugin provides explicit control over markers, including setting/getting markers
+    /// and applying options at runtime. Use the plugin's `detach()` method to remove it
+    /// when no longer needed.
+    ///
+    /// - Parameters:
+    ///   - data: Initial marker data to display.
+    ///   - options: Optional initial plugin options.
+    /// - Returns: A new `SeriesMarkersPlugin` instance attached to this series.
+    func createMarkersPlugin(
+        data: [SeriesMarker],
+        options: SeriesMarkersOptions = SeriesMarkersOptions()
+    ) -> SeriesMarkersPlugin<Self> {
+        return SeriesMarkersPlugin(series: self, data: data, options: options)
+    }
+}
+
+public extension SeriesApi where Self: UpDownMarkersSupported {
+
+    /// Creates a new up-down markers plugin attached to this series.
+    ///
+    /// The plugin provides visual indicators for directional price movements.
+    /// Use the plugin's `detach()` method to remove it when no longer needed.
+    ///
+    /// - Parameters:
+    ///   - data: Initial marker data to display.
+    ///   - options: Optional initial plugin options.
+    /// - Returns: A new `UpDownMarkersPlugin` instance attached to this series.
+    func createUpDownMarkersPlugin(
+        data: [SeriesUpDownMarker]? = nil,
+        options: UpDownMarkersOptions = UpDownMarkersOptions()
+    ) -> UpDownMarkersPlugin<Self> {
+        return UpDownMarkersPlugin(series: self, data: data, options: options)
+    }
+
 }

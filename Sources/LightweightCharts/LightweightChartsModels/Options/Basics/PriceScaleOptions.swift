@@ -73,6 +73,16 @@ protocol OverlayPriceScaleOptionsProtocol {
      True value add a small horizontal ticks on price axis labels
      */
     var ticksVisible: Bool? { get }
+
+    /**
+     Minimum width of the price scale in pixels.
+     */
+    var minimumWidth: Double? { get }
+
+    /**
+     Ensures edge tick marks are visible when possible.
+     */
+    var ensureEdgeTickMarksVisible: Bool? { get }
     
 }
 
@@ -107,6 +117,8 @@ public struct PriceScaleOptions: Codable, VisiblePriceScaleOptionsProtocol {
     public var entireTextOnly: Bool?
     public var visible: Bool?
     public var ticksVisible: Bool?
+    public var minimumWidth: Double?
+    public var ensureEdgeTickMarksVisible: Bool?
     
     public init(autoScale: Bool? = nil,
                 mode: PriceScaleMode? = nil,
@@ -117,7 +129,9 @@ public struct PriceScaleOptions: Codable, VisiblePriceScaleOptionsProtocol {
                 borderColor: ChartColor? = nil,
                 entireTextOnly: Bool? = nil,
                 visible: Bool? = nil,
-                ticksVisible: Bool? = nil) {
+                ticksVisible: Bool? = nil,
+                minimumWidth: Double? = nil,
+                ensureEdgeTickMarksVisible: Bool? = nil) {
         self.autoScale = autoScale
         self.mode = mode
         self.invertScale = invertScale
@@ -128,6 +142,8 @@ public struct PriceScaleOptions: Codable, VisiblePriceScaleOptionsProtocol {
         self.entireTextOnly = entireTextOnly
         self.visible = visible
         self.ticksVisible = ticksVisible
+        self.minimumWidth = minimumWidth
+        self.ensureEdgeTickMarksVisible = ensureEdgeTickMarksVisible
     }
     
 }
@@ -149,6 +165,8 @@ public struct OverlayPriceScaleOptions: Codable, OverlayPriceScaleOptionsProtoco
     public var borderColor: ChartColor?
     public var entireTextOnly: Bool?
     public var ticksVisible: Bool?
+    public var minimumWidth: Double?
+    public var ensureEdgeTickMarksVisible: Bool?
     
     public init(autoScale: Bool? = nil,
                 mode: PriceScaleMode? = nil,
@@ -159,7 +177,9 @@ public struct OverlayPriceScaleOptions: Codable, OverlayPriceScaleOptionsProtoco
                 borderColor: ChartColor? = nil,
                 entireTextOnly: Bool? = nil,
                 visible: Bool? = nil,
-                ticksVisible: Bool? = nil) {
+                ticksVisible: Bool? = nil,
+                minimumWidth: Double? = nil,
+                ensureEdgeTickMarksVisible: Bool? = nil) {
         self.mode = mode
         self.invertScale = invertScale
         self.alignLabels = alignLabels
@@ -168,6 +188,8 @@ public struct OverlayPriceScaleOptions: Codable, OverlayPriceScaleOptionsProtoco
         self.borderColor = borderColor
         self.entireTextOnly = entireTextOnly
         self.ticksVisible = ticksVisible
+        self.minimumWidth = minimumWidth
+        self.ensureEdgeTickMarksVisible = ensureEdgeTickMarksVisible
     }
     
 }

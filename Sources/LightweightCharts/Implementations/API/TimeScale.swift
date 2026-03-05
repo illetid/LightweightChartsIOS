@@ -207,6 +207,10 @@ extension TimeScale: MessageHandlerDelegate {
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveClickWithParameters parameters: MouseEventParams) {
     }
+
+    func messageHandler(_ messageHandler: MessageHandler,
+                        didReceiveDblClickWithParameters parameters: MouseEventParams) {
+    }
     
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveCrosshairMoveWithParameters parameters: MouseEventParams) {

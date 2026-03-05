@@ -1,6 +1,6 @@
 import Foundation
 
-public struct BusinessDay: Codable {
+public struct BusinessDay: Codable, Equatable {
     
     public let year: Int
     public let month: Int

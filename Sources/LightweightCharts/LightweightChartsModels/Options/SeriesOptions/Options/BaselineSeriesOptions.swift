@@ -94,6 +94,16 @@ public struct BaselineSeriesOptions: SeriesOptionsCommon {
      * Crosshair marker border width in pixels.
      */
     public var crosshairMarkerBorderWidth: Double?
+
+    /**
+     * Show point markers on the line.
+     */
+    public var pointMarkersVisible: Bool?
+
+    /**
+     * Radius of point markers in pixels.
+     */
+    public var pointMarkersRadius: Double?
     
     /**
      * Last price animation mode.
@@ -131,6 +141,8 @@ public struct BaselineSeriesOptions: SeriesOptionsCommon {
                 crosshairMarkerBorderColor: String? = nil,
                 crosshairMarkerBackgroundColor: String? = nil,
                 crosshairMarkerBorderWidth: Double? = nil,
+                pointMarkersVisible: Bool? = nil,
+                pointMarkersRadius: Double? = nil,
                 lastPriceAnimation: LastPriceAnimationMode? = nil) {
         self.lastValueVisible = lastValueVisible
         self.title = title
@@ -162,6 +174,8 @@ public struct BaselineSeriesOptions: SeriesOptionsCommon {
         self.crosshairMarkerBorderColor = crosshairMarkerBorderColor
         self.crosshairMarkerBackgroundColor = crosshairMarkerBackgroundColor
         self.crosshairMarkerBorderWidth = crosshairMarkerBorderWidth
+        self.pointMarkersVisible = pointMarkersVisible
+        self.pointMarkersRadius = pointMarkersRadius
         self.lastPriceAnimation = lastPriceAnimation
     }
 }

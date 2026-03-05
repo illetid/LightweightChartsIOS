@@ -5,7 +5,7 @@ protocol BarSeriesData: OhlcData {
 }
 
 // MARK: -
-public struct BarData: BarSeriesData {
+public struct BarData: BarSeriesData, Equatable {
     
     public var time: Time
     public var open: Double?
