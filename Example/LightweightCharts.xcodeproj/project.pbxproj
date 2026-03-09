@@ -11,6 +11,7 @@
 		3A101DB89FB89F78AD70AEC8 /* Pods_LightweightCharts_Tests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CA67766DE9AF16E36F49BD /* Pods_LightweightCharts_Tests.framework */; };
 		553BBEF1504910A67881628E /* PluginFileInclusionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7077E3B2D7808CE84D6CDF5 /* PluginFileInclusionTests.swift */; };
 		607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD51AFB9204008FA782 /* AppDelegate.swift */; };
+		A1C3E5002F01000100000001 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C3E5002F01000100000002 /* SceneDelegate.swift */; };
 		607FACDD1AFB9204008FA782 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDC1AFB9204008FA782 /* Images.xcassets */; };
 		607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDE1AFB9204008FA782 /* LaunchScreen.xib */; };
 		607FACEC1AFB9204008FA782 /* Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACEB1AFB9204008FA782 /* Tests.swift */; };
@@ -77,6 +78,7 @@
 		607FACD01AFB9204008FA782 /* LightweightCharts_Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LightweightCharts_Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		607FACD41AFB9204008FA782 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		607FACD51AFB9204008FA782 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A1C3E5002F01000100000002 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		607FACDC1AFB9204008FA782 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		607FACDF1AFB9204008FA782 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/LaunchScreen.xib; sourceTree = "<group>"; };
 		607FACE51AFB9204008FA782 /* LightweightCharts_Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LightweightCharts_Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -190,6 +192,7 @@
 				CE5054022397AF9400143B03 /* Views */,
 				CE5053CD2397AF6D00143B03 /* Example */,
 				607FACD51AFB9204008FA782 /* AppDelegate.swift */,
+				A1C3E5002F01000100000002 /* SceneDelegate.swift */,
 				607FACDC1AFB9204008FA782 /* Images.xcassets */,
 				607FACDE1AFB9204008FA782 /* LaunchScreen.xib */,
 				607FACD31AFB9204008FA782 /* Supporting Files */,
@@ -502,6 +505,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1C3E5002F01000100000001 /* SceneDelegate.swift in Sources */,
 				8C8C292024D163C500EC537E /* PriceScaleAtLeftViewController.swift in Sources */,
 				8C8C292D24D1659200EC537E /* LogarithmicPriceScaleViewController.swift in Sources */,
 				8C8C292C24D1656D00EC537E /* MagnifierTooltipViewController.swift in Sources */,
