@@ -23,7 +23,7 @@ import Foundation
  )
  let plugin = TextWatermarkPlugin(chart: chart, paneIndex: 0, options: options)
  // Later update options
- plugin.applyOptions(options: TextWatermarkOptions(visible: false))
+ plugin.applyOptions(options: TextWatermarkUpdateOptions(visible: false))
  // Remove when done
  plugin.detach()
  ```
@@ -109,6 +109,18 @@ where Chart: JavaScriptObject {
         watermark.applyOptions(options)
     }
 
+    /// Applies a partial options patch to the text watermark.
+    ///
+    /// Unspecified fields preserve the plugin's current option state.
+    ///
+    /// - Parameter options: Partial options to apply to the watermark.
+    public func applyOptions(options: TextWatermarkUpdateOptions) {
+        guard !isDetached, let watermark = watermark else { return }
+
+        self.options = options.merged(with: self.options)
+        watermark.applyOptions(options)
+    }
+
     /// Returns the current visibility state of the watermark.
     ///
     /// - Parameter completion: Completion handler with the visibility state,
@@ -152,8 +164,6 @@ where Chart: JavaScriptObject {
     ///
     /// - Parameter visible: Whether the watermark should be visible.
     public func setVisible(_ visible: Bool) {
-        var newOptions = options
-        newOptions.visible = visible
-        applyOptions(options: newOptions)
+        applyOptions(options: TextWatermarkUpdateOptions(visible: visible))
     }
 }

@@ -324,6 +324,10 @@ extension LightweightCharts: ChartApi {
     public func options(completion: @escaping (ChartOptions?) -> Void) {
         chart.options(completion: completion)
     }
+
+    public func autoSizeActive(completion: @escaping (Bool?) -> Void) {
+        chart.autoSizeActive(completion: completion)
+    }
     
     public func takeScreenshot(addTopLayer: Bool?, includeCrosshair: Bool?, completion: @escaping (UIImage?) -> Void) {
         chart.takeScreenshot(addTopLayer: addTopLayer, includeCrosshair: includeCrosshair, completion: completion)

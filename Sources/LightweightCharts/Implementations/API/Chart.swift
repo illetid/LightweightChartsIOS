@@ -398,20 +398,28 @@ public func options(completion: @escaping (ChartOptions?) -> Void) {
         let script = "\(jsName).options();"
         _context.decodedResult(forScript: script, completion: completion)
     }
+
+public func autoSizeActive(completion: @escaping (Bool?) -> Void) {
+        let script = "\(jsName).autoSizeActive();"
+        _context.evaluateScript(script) { result, _ in
+            completion(result as? Bool)
+        }
+    }
     
 public func takeScreenshot(addTopLayer: Bool?, includeCrosshair: Bool?, completion: @escaping (UIImage?) -> Void) {
         let imageFormat = "image/jpeg"
-        var screenshotOptions: [String] = []
-        if let addTopLayer = addTopLayer {
-            screenshotOptions.append("addTopLayer: \(addTopLayer)")
+        let screenshotCall: String
+        switch (addTopLayer, includeCrosshair) {
+        case let (.some(addTopLayer), .some(includeCrosshair)):
+            screenshotCall = "\(jsName).takeScreenshot(\(addTopLayer), \(includeCrosshair))"
+        case let (.some(addTopLayer), .none):
+            screenshotCall = "\(jsName).takeScreenshot(\(addTopLayer))"
+        case let (.none, .some(includeCrosshair)):
+            screenshotCall = "\(jsName).takeScreenshot(undefined, \(includeCrosshair))"
+        case (.none, .none):
+            screenshotCall = "\(jsName).takeScreenshot()"
         }
-        if let includeCrosshair = includeCrosshair {
-            screenshotOptions.append("includeCrosshair: \(includeCrosshair)")
-        }
-        let optionsParameter = screenshotOptions.isEmpty ? "" : "{\(screenshotOptions.joined(separator: ", "))}"
-        let script = optionsParameter.isEmpty
-            ? "\(jsName).takeScreenshot().toDataURL('\(imageFormat)', 1.0);"
-            : "\(jsName).takeScreenshot(\(optionsParameter)).toDataURL('\(imageFormat)', 1.0);"
+        let script = "\(screenshotCall).toDataURL('\(imageFormat)', 1.0);"
         _context.evaluateScript(script) { (result, error) in
             // Extract String on main thread to avoid capturing bridged WebKit
             // objects into background queue (causes ProcessThrottler crash).
@@ -604,7 +612,7 @@ final class Pane: PaneApi {
 
     func priceScale(priceScaleId: String) -> PriceScaleApi {
         let priceScale = PriceScale(context: context)
-        let script = "window['\(priceScale.jsName)'] = \(chartJSName).panes()[\(index)].priceScale('\(priceScaleId)');"
+        let script = "window['\(priceScale.jsName)'] = \(chartJSName).panes()[\(index)].priceScale(\(priceScaleId.jsonString()));"
         context.evaluateScript(script, completion: nil)
         return priceScale
     }

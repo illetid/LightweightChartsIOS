@@ -28,6 +28,17 @@ public class ImageWatermark {
     }
 
     /**
+     Update the watermark with a partial options patch.
+
+     - Parameter options: New partial options to apply to the watermark.
+     */
+    public func applyOptions(_ options: ImageWatermarkUpdateOptions) {
+        guard let context = context else { return }
+        let script = "\(jsName).applyOptions(\(options.jsonString()));"
+        context.evaluateScript(script, completion: nil)
+    }
+
+    /**
      Remove (detach) the watermark from the chart.
 
      After calling this method, the watermark is removed from the chart

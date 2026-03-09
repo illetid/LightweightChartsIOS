@@ -120,22 +120,57 @@ public extension SeriesApi where Self: SeriesObject {
     }
 
     func priceLines(completion: @escaping ([PriceLine]?) -> Void) {
+        let completeOnMain: ([PriceLine]?) -> Void = { lines in
+            if Thread.isMainThread {
+                completion(lines)
+            } else {
+                DispatchQueue.main.async {
+                    completion(lines)
+                }
+            }
+        }
+
         let countScript = "\(jsName).priceLines().length;"
         context.evaluateScript(countScript) { [self] result, _ in
             guard let count = (result as? NSNumber)?.intValue else {
-                completion(nil)
+                completeOnMain(nil)
                 return
             }
 
-            var lines: [PriceLine] = []
+            guard count > 0 else {
+                completeOnMain([])
+                return
+            }
+
+            let stateQueue = DispatchQueue(label: "LightweightCharts.SeriesApi.priceLines")
+            var lines = Array<PriceLine?>(repeating: nil, count: count)
+            var remaining = count
+            var didFail = false
+
             for index in 0..<count {
                 let priceLine = PriceLine(context: self.context)
                 let createScript = "window['\(priceLine.jsName)'] = \(self.jsName).priceLines()[\(index)];"
-                self.context.evaluateScript(createScript, completion: nil)
-                lines.append(priceLine)
-            }
+                self.context.evaluateScript(createScript) { _, error in
+                    stateQueue.async {
+                        guard !didFail else {
+                            return
+                        }
 
-            completion(lines)
+                        if error != nil {
+                            didFail = true
+                            completeOnMain(nil)
+                            return
+                        }
+
+                        lines[index] = priceLine
+                        remaining -= 1
+
+                        if remaining == 0 {
+                            completeOnMain(lines.compactMap { $0 })
+                        }
+                    }
+                }
+            }
         }
     }
     

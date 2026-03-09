@@ -92,6 +92,10 @@ extension SeriesOptionsCommon {
             closuresStore?.addMethod(formatter.function, forName: formatter.name)
             optionsScript.append("\(variableName).priceFormat.formatter = \(formatter.script());")
         }
+        if case let .custom(customFormatter) = priceFormat, let formatter = customFormatter.tickmarksFormatterJSFunction {
+            closuresStore?.addMethod(formatter.function, forName: formatter.name)
+            optionsScript.append("\(variableName).priceFormat.tickmarksFormatter = \(formatter.script());")
+        }
         if let provider = autoscaleInfoProvider?.jsFunction {
             closuresStore?.addMethod(provider.function, forName: provider.name)
             optionsScript.append("\(variableName).autoscaleInfoProvider = \(provider.script());")

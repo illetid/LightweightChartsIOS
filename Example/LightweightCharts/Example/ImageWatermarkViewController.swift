@@ -224,6 +224,16 @@ class ImageWatermarkViewController: UIViewController {
         self.series = series
     }
 
+    private func scheduleWatermarkUpdates() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            self?.watermark?.applyOptions(options: ImageWatermarkUpdateOptions(alpha: 0.3, maxWidth: 160))
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.watermark?.applyOptions(options: ImageWatermarkUpdateOptions(padding: 28, maxHeight: 140))
+        }
+    }
+
 }
 
 // MARK: - LightweightChartsDelegate
@@ -294,6 +304,7 @@ extension ImageWatermarkViewController: LightweightChartsDelegate {
             maxHeight: 200
         )
         watermark = chart.createImageWatermarkPlugin(paneIndex: 0, imageUrl: imageUrl, options: watermarkOptions)
+        scheduleWatermarkUpdates()
     }
 
     func lightweightCharts(_ lightweightCharts: LightweightCharts, didFailLoadWithError error: Error) {

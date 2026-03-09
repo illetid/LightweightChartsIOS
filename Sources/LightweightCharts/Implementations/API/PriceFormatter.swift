@@ -21,5 +21,15 @@ extension PriceFormatter: PriceFormatterApi {
             completion(result as? String)
         }
     }
+
+    func formatTickmarks(prices: [BarPrice], completion: @escaping ([String]?) -> Void) {
+        let script = "JSON.stringify(\(jsName).formatTickmarks(\(prices.jsonString)));"
+        guard let context: any JavaScriptEvaluator else {
+            completion(nil)
+            return
+        }
+
+        context.decodedResult(forScript: script, completion: completion)
+    }
     
 }

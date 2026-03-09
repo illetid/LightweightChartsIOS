@@ -281,6 +281,12 @@ public protocol ChartApi: AnyObject {
     func options(completion: @escaping (ChartOptions?) -> Void)
 
     /**
+     * Returns whether auto-size is currently active for the chart.
+     * - Parameter completion: true when auto-size is active
+     */
+    func autoSizeActive(completion: @escaping (Bool?) -> Void)
+
+    /**
      * Make a screenshot of the chart with all the elements excluding crosshair.
      * - Parameter completion: a canvas with the chart drawn on
      */

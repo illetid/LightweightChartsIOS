@@ -30,6 +30,7 @@ struct JSFunction<Input: Decodable, Output: Encodable> {
     enum PromptFunction {
         
         case simpleFormatter
+        case jsonResultFormatter
         case tickMarkFormatter
         case autoscaleInfoProvider
         
@@ -37,6 +38,8 @@ struct JSFunction<Input: Decodable, Output: Encodable> {
             switch self {
             case .simpleFormatter:
                 return "promptFunction"
+            case .jsonResultFormatter:
+                return "promptJsonFunction"
             case .tickMarkFormatter:
                 return "promptTickMarkFormatterFunction"
             case .autoscaleInfoProvider:
@@ -50,10 +53,18 @@ struct JSFunction<Input: Decodable, Output: Encodable> {
     let function: JavaScriptMethod<Input, Output>
     
     private let promptFunctionName: String
+
+    private static var inferredPrompt: PromptFunction {
+        Output.self == String.self ? .simpleFormatter : .jsonResultFormatter
+    }
     
     init(prompt: PromptFunction = .simpleFormatter, function: JavaScriptMethod<Input, Output>) {
         self.function = function
         self.promptFunctionName = prompt.name
+    }
+
+    init(function: JavaScriptMethod<Input, Output>) {
+        self.init(prompt: Self.inferredPrompt, function: function)
     }
     
     init(prompt: PromptFunction = .simpleFormatter, closure: @escaping (Input) -> Output) {

@@ -10,6 +10,18 @@ function promptFunction(objectName) {
     }
 }
 
+function promptJsonFunction(objectName) {
+    return function(params) {
+        try {
+            var payload = {object: objectName, params: params};
+            var result = prompt(JSON.stringify(payload));
+            return result == null ? null : JSON.parse(result);
+        } catch(err) {
+            console.log('Error with function ' + object + '.')
+        }
+    }
+}
+
 function promptTickMarkFormatterFunction(objectName) {
     return function(time, tickMarkType, locale) {
         try {

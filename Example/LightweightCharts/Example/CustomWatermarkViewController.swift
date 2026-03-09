@@ -224,13 +224,30 @@ class CustomWatermarkViewController: UIViewController {
         self.series = series
     }
 
+    private func scheduleWatermarkUpdates() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            self?.watermark?.applyOptions(options: TextWatermarkUpdateOptions(lines: [
+                WatermarkLine(text: "Watermark Example", color: "rgba(171, 71, 188, 0.5)", fontSize: 24),
+                WatermarkLine(text: "Partial update", color: "rgba(15, 118, 110, 0.65)", fontSize: 18)
+            ]))
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.watermark?.applyOptions(options: TextWatermarkUpdateOptions(
+                horizontalAlignment: .right,
+                verticalAlignment: .top
+            ))
+        }
+    }
+
 }
 
 // MARK: - LightweightChartsDelegate
 extension CustomWatermarkViewController: LightweightChartsDelegate {
 
     func lightweightChartsDidLoad(_ lightweightCharts: LightweightCharts) {
-        // Create the text watermark using the v5 plugin API after the chart loads
+        // Create the text watermark using the v5 plugin API after the chart loads.
+        // Then apply partial updates so the example demonstrates patch-style changes.
         let watermarkOptions = TextWatermarkOptions(
             horizontalAlignment: .center,
             verticalAlignment: .center,
@@ -239,6 +256,7 @@ extension CustomWatermarkViewController: LightweightChartsDelegate {
             fontSize: 24
         )
         watermark = chart.createTextWatermarkPlugin(paneIndex: 0, options: watermarkOptions)
+        scheduleWatermarkUpdates()
     }
 
     func lightweightCharts(_ lightweightCharts: LightweightCharts, didFailLoadWithError error: Error) {

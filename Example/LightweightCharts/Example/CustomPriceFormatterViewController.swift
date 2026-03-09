@@ -27,11 +27,33 @@ class CustomPriceFormatterViewController: UIViewController {
             case .pound: return "function(price) { return '\u{00A3}' + price.toFixed(2); }"
             }
         }
+
+        var tickmarkFormatterString: String {
+            switch self {
+            case .dollar:
+                return "function(prices) { return prices.map(function(price) { return '$' + price.toFixed(0); }); }"
+            case .pound:
+                return "function(prices) { return prices.map(function(price) { return '\u{00A3}' + price.toFixed(0); }); }"
+            }
+        }
         
         var formatterClosure: (BarPrice) -> String {
             switch self {
             case .dollar: return { "🦄$\(($0 * 100).rounded() / 100)" }
             case .pound: return { "☁️\u{00A3}\(($0 * 100).rounded() / 100)" }
+            }
+        }
+
+        var tickmarkFormatterClosure: ([BarPrice]) -> [String] {
+            switch self {
+            case .dollar:
+                return { prices in
+                    prices.map { "$\(Int($0.rounded()))" }
+                }
+            case .pound:
+                return { prices in
+                    prices.map { "\u{00A3}\(Int($0.rounded()))" }
+                }
             }
         }
         
@@ -115,7 +137,10 @@ class CustomPriceFormatterViewController: UIViewController {
                 verticalLines: GridLineOptions(color: "rgba(255, 255, 255, 0.2)"),
                 horizontalLines: GridLineOptions(color: "rgba(255, 255, 255, 0.2)")
             ),
-            localization: LocalizationOptions(priceFormatter: .javaScript(FormatterType.allCases[0].formatterString))
+            localization: LocalizationOptions(
+                priceFormatter: .javaScript(FormatterType.allCases[0].formatterString),
+                tickmarksPriceFormatter: .javaScript(FormatterType.allCases[0].tickmarkFormatterString)
+            )
         )
         let chart = LightweightCharts(options: options)
         view.addSubview(chart)
@@ -305,15 +330,23 @@ class CustomPriceFormatterViewController: UIViewController {
     }
 
     private func updateFormatter() {
-        let method: JavaScriptMethod<BarPrice, String>
+        let priceFormatter: JavaScriptMethod<BarPrice, String>
+        let tickmarksPriceFormatter: JavaScriptMethod<[BarPrice], [String]>
         switch selectedSource {
         case .js:
-            method = .javaScript(selectedFormat.formatterString)
+            priceFormatter = .javaScript(selectedFormat.formatterString)
+            tickmarksPriceFormatter = .javaScript(selectedFormat.tickmarkFormatterString)
         case .native:
-            method = .closure(selectedFormat.formatterClosure)
+            priceFormatter = .closure(selectedFormat.formatterClosure)
+            tickmarksPriceFormatter = .closure(selectedFormat.tickmarkFormatterClosure)
         }
-        
-        let options = ChartOptions(localization: LocalizationOptions(priceFormatter: method))
+
+        let options = ChartOptions(
+            localization: LocalizationOptions(
+                priceFormatter: priceFormatter,
+                tickmarksPriceFormatter: tickmarksPriceFormatter
+            )
+        )
         chart.applyOptions(options: options)
     }
     

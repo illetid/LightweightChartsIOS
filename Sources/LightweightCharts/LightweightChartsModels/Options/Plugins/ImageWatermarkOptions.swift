@@ -69,3 +69,57 @@ extension ImageWatermarkOptions {
         return string
     }
 }
+
+/**
+ Partial options for updating an existing image watermark.
+ */
+public struct ImageWatermarkUpdateOptions {
+    public var alpha: Double?
+    public var padding: Int?
+    public var maxWidth: Double?
+    public var maxHeight: Double?
+
+    public init(
+        alpha: Double? = nil,
+        padding: Int? = nil,
+        maxWidth: Double? = nil,
+        maxHeight: Double? = nil
+    ) {
+        self.alpha = alpha
+        self.padding = padding
+        self.maxWidth = maxWidth
+        self.maxHeight = maxHeight
+    }
+
+    func merged(with current: ImageWatermarkOptions) -> ImageWatermarkOptions {
+        ImageWatermarkOptions(
+            alpha: alpha ?? current.alpha,
+            padding: padding ?? current.padding,
+            maxWidth: maxWidth ?? current.maxWidth,
+            maxHeight: maxHeight ?? current.maxHeight
+        )
+    }
+}
+
+// MARK: - Codable
+extension ImageWatermarkUpdateOptions: Codable {
+
+    enum CodingKeys: String, CodingKey {
+        case alpha
+        case padding
+        case maxWidth
+        case maxHeight
+    }
+
+}
+
+// MARK: - Encodable helper
+extension ImageWatermarkUpdateOptions {
+    func jsonString() -> String {
+        guard let data = try? JSONEncoder().encode(self),
+              let string = String(data: data, encoding: .utf8) else {
+            return "{}"
+        }
+        return string
+    }
+}

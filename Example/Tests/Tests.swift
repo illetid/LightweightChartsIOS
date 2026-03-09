@@ -1,4 +1,5 @@
 import XCTest
+import WebKit
 @testable import LightweightCharts
 
 // MARK: - UMD Artifact Tests
@@ -4320,7 +4321,7 @@ final class V5TextWatermarkAPITests: XCTestCase {
             fontStyle: "normal"
         )
 
-        let jsonString = options.jsonString()
+        let jsonString = options.jsonString
 
         XCTAssertTrue(jsonString.contains("\"visible\":true"), "Should contain visible field")
         XCTAssertTrue(jsonString.contains("\"horzAlign\":\"center\""), "Should contain horzAlign field")
@@ -4363,7 +4364,7 @@ final class V5TextWatermarkAPITests: XCTestCase {
             lines: lines
         )
 
-        let jsonString = options.jsonString()
+        let jsonString = options.jsonString
 
         XCTAssertTrue(jsonString.contains("\"horzAlign\":\"left\""), "Should contain left alignment")
         XCTAssertTrue(jsonString.contains("\"vertAlign\":\"top\""), "Should contain top alignment")
@@ -5223,6 +5224,16 @@ class TestSeries: SeriesObject, SeriesApi {
     }
 }
 
+/// Minimal concrete series that relies on SeriesApi default implementations.
+final class RegressionTestSeries: SeriesObject, SeriesApi {
+    typealias Options = LineSeriesOptions
+    typealias TickValue = LineData
+
+    required init(context: JavaScriptEvaluator, closureStore: ClosuresStore?) {
+        super.init(context: context, closureStore: closureStore)
+    }
+}
+
 // MARK: - Test Adapter for Testing
 
 /// Test adapter implementation for testing SeriesPluginAdapter
@@ -5378,19 +5389,36 @@ class TestChart: JavaScriptObject {
 // MARK: - Test JavaScript Evaluator for Pane Plugin Tests
 
 /// Test JavaScript evaluator implementation for testing PanePluginAdapter
-class TestJavaScriptEvaluator: JavaScriptEvaluator {
+class TestJavaScriptEvaluator: JavaScriptEvaluator, JavaScriptMessageProducer {
     private var lastScript: String?
+    private var scripts: [String] = []
     var evaluateScriptCallCount = 0
+    var evaluateScriptHandler: ((String, ((Any?, Error?) -> Void)?) -> Bool)?
+    var decodedResultHandler: ((String) -> Any?)?
+    private(set) var addedMessageHandlerNames: [String] = []
 
     func evaluateScript(_ script: String, completion: ((Any?, Error?) -> Void)?) {
         lastScript = script
+        scripts.append(script)
         evaluateScriptCallCount += 1
+
+        if evaluateScriptHandler?(script, completion) == true {
+            return
+        }
+
         completion?(nil, nil)
     }
 
     func decodedResult<T: Decodable>(forScript script: String, completion: @escaping (T?) -> Void) {
         lastScript = script
+        scripts.append(script)
         evaluateScriptCallCount += 1
+
+        if let result = decodedResultHandler?(script) as? T {
+            completion(result)
+            return
+        }
+
         completion(nil)
     }
 
@@ -5403,9 +5431,230 @@ class TestJavaScriptEvaluator: JavaScriptEvaluator {
         return lastScript
     }
 
+    func getScripts() -> [String] {
+        return scripts
+    }
+
+    func addMessageHandler(_ messageHandler: WKScriptMessageHandler, name: String) {
+        addedMessageHandlerNames.append(name)
+    }
+
     func reset() {
         lastScript = nil
+        scripts.removeAll()
         evaluateScriptCallCount = 0
+        evaluateScriptHandler = nil
+        decodedResultHandler = nil
+        addedMessageHandlerNames.removeAll()
+    }
+}
+
+final class BridgeRegressionUnitTests: XCTestCase {
+
+    func testTakeScreenshotUsesPositionalArgumentsForAllSupportedShapes() {
+        let context = TestJavaScriptEvaluator()
+        let chart = Chart(context: context, closureStore: nil)
+        let cases: [(Bool?, Bool?, String)] = [
+            (nil, nil, "\(chart.jsName).takeScreenshot().toDataURL('image/jpeg', 1.0);"),
+            (true, nil, "\(chart.jsName).takeScreenshot(true).toDataURL('image/jpeg', 1.0);"),
+            (false, true, "\(chart.jsName).takeScreenshot(false, true).toDataURL('image/jpeg', 1.0);"),
+            (nil, false, "\(chart.jsName).takeScreenshot(undefined, false).toDataURL('image/jpeg', 1.0);")
+        ]
+
+        for (index, testCase) in cases.enumerated() {
+            context.reset()
+
+            let expectation = expectation(description: "screenshot callback \(index)")
+            chart.takeScreenshot(addTopLayer: testCase.0, includeCrosshair: testCase.1) { _ in
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: 1.0)
+            XCTAssertEqual(context.getLastScript(), testCase.2)
+        }
+    }
+
+    func testAutoSizeActiveBridgesBooleanResult() {
+        let context = TestJavaScriptEvaluator()
+        let chart = Chart(context: context, closureStore: nil)
+        let expectation = expectation(description: "autoSizeActive callback")
+        var receivedValue: Bool?
+
+        context.evaluateScriptHandler = { script, completion in
+            guard script == "\(chart.jsName).autoSizeActive();" else {
+                return false
+            }
+
+            completion?(NSNumber(value: true), nil)
+            return true
+        }
+
+        chart.autoSizeActive { value in
+            receivedValue = value
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+        XCTAssertEqual(receivedValue, true)
+        XCTAssertEqual(context.getLastScript(), "\(chart.jsName).autoSizeActive();")
+    }
+
+    func testPriceFormatterFormatTickmarksBridgesStringArrayResult() {
+        let context = TestJavaScriptEvaluator()
+        let formatter = PriceFormatter(context: context)
+        let expectation = expectation(description: "formatTickmarks callback")
+        var receivedValue: [String]?
+
+        context.decodedResultHandler = { script in
+            guard script == "JSON.stringify(\(formatter.jsName).formatTickmarks([1.5,2.5]));" else {
+                return nil
+            }
+
+            return ["one", "two"]
+        }
+
+        formatter.formatTickmarks(prices: [1.5, 2.5]) { value in
+            receivedValue = value
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+        XCTAssertEqual(receivedValue ?? [], ["one", "two"])
+        XCTAssertEqual(context.getLastScript(), "JSON.stringify(\(formatter.jsName).formatTickmarks([1.5,2.5]));")
+    }
+
+    func testPanePriceScaleEscapesSpecialCharacters() {
+        let context = TestJavaScriptEvaluator()
+        let pane = Pane(index: 1, chartJSName: "chartRef", context: context)
+        let priceScaleId = "pane\"'\\scale"
+
+        guard let priceScale = pane.priceScale(priceScaleId: priceScaleId) as? PriceScale else {
+            XCTFail("Pane should return a concrete PriceScale")
+            return
+        }
+
+        XCTAssertEqual(
+            context.getLastScript(),
+            "window['\(priceScale.jsName)'] = chartRef.panes()[1].priceScale(\(priceScaleId.jsonString()));"
+        )
+    }
+
+    func testSeriesPriceLinesWaitsForAllAssignmentsBeforeCompleting() {
+        let context = TestJavaScriptEvaluator()
+        let series = RegressionTestSeries(context: context, closureStore: nil)
+        var pendingAssignments: [((Any?, Error?) -> Void)] = []
+        var returnedLines: [PriceLine]?
+        let completionExpectation = expectation(description: "priceLines completion")
+
+        context.evaluateScriptHandler = { script, completion in
+            if script == "\(series.jsName).priceLines().length;" {
+                completion?(NSNumber(value: 2), nil)
+                return true
+            }
+
+            if script.contains("\(series.jsName).priceLines()[") {
+                if let completion = completion {
+                    pendingAssignments.append(completion)
+                }
+                return true
+            }
+
+            return false
+        }
+
+        series.priceLines { lines in
+            returnedLines = lines
+            lines?.first?.applyOptions(options: PriceLineOptions(price: 42))
+            completionExpectation.fulfill()
+        }
+
+        waitBriefly()
+        XCTAssertNil(returnedLines, "Completion should wait for assignment callbacks")
+        XCTAssertEqual(pendingAssignments.count, 2, "Each returned line should wait for JS assignment")
+
+        pendingAssignments[0](nil, nil)
+        waitBriefly()
+        XCTAssertNil(returnedLines, "Completion should wait for all assignment callbacks")
+
+        pendingAssignments[1](nil, nil)
+        wait(for: [completionExpectation], timeout: 1.0)
+
+        XCTAssertEqual(returnedLines?.count, 2)
+        XCTAssertTrue(context.getLastScript()?.contains(".applyOptions(") == true)
+    }
+
+    func testSeriesPriceLinesReturnsEmptyArrayWhenSeriesHasNoPriceLines() {
+        let context = TestJavaScriptEvaluator()
+        let series = RegressionTestSeries(context: context, closureStore: nil)
+        let completionExpectation = expectation(description: "empty priceLines completion")
+        var returnedLines: [PriceLine]?
+
+        context.evaluateScriptHandler = { script, completion in
+            if script == "\(series.jsName).priceLines().length;" {
+                completion?(NSNumber(value: 0), nil)
+                return true
+            }
+
+            return false
+        }
+
+        series.priceLines { lines in
+            returnedLines = lines
+            completionExpectation.fulfill()
+        }
+
+        wait(for: [completionExpectation], timeout: 1.0)
+        XCTAssertEqual(returnedLines?.count, 0)
+        XCTAssertEqual(context.evaluateScriptCallCount, 1)
+    }
+
+    func testSeriesPriceLinesFailsWholeOperationWhenAssignmentFails() {
+        let context = TestJavaScriptEvaluator()
+        let series = RegressionTestSeries(context: context, closureStore: nil)
+        var pendingAssignments: [((Any?, Error?) -> Void)] = []
+        var callbackCount = 0
+        var returnedLines: [PriceLine]?
+        let completionExpectation = expectation(description: "failed priceLines completion")
+
+        context.evaluateScriptHandler = { script, completion in
+            if script == "\(series.jsName).priceLines().length;" {
+                completion?(NSNumber(value: 2), nil)
+                return true
+            }
+
+            if script.contains("\(series.jsName).priceLines()[") {
+                if let completion = completion {
+                    pendingAssignments.append(completion)
+                }
+                return true
+            }
+
+            return false
+        }
+
+        series.priceLines { lines in
+            callbackCount += 1
+            returnedLines = lines
+            completionExpectation.fulfill()
+        }
+
+        pendingAssignments[0](nil, nil)
+        waitBriefly()
+        XCTAssertEqual(callbackCount, 0)
+
+        pendingAssignments[1](nil, NSError(domain: "BridgeRegressionUnitTests", code: 1))
+        wait(for: [completionExpectation], timeout: 1.0)
+
+        XCTAssertNil(returnedLines)
+        XCTAssertEqual(callbackCount, 1)
+    }
+
+    private func waitBriefly() {
+        let expectation = expectation(description: "brief wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
     }
 }
 
@@ -10053,6 +10302,21 @@ final class ChartSubscriptionAndUtilityTests: XCTestCase {
         errorCatcher.assertNoErrors()
     }
 
+    /// Tests that autoSizeActive(completion:) returns a boolean result
+    func testAutoSizeActiveCallback() {
+        errorCatcher.clear()
+
+        let expectation = self.expectation(description: "autoSizeActive callback invoked")
+
+        charts.autoSizeActive { isActive in
+            XCTAssertNotNil(isActive, "autoSizeActive should return a boolean result")
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 3.0)
+        errorCatcher.assertNoErrors()
+    }
+
     // MARK: - Screenshot Tests
 
     /// Tests that takeScreenshot invokes completion callback
@@ -10095,6 +10359,20 @@ final class ChartSubscriptionAndUtilityTests: XCTestCase {
         let expectation = self.expectation(description: "Screenshot callback with options")
 
         charts.takeScreenshot(addTopLayer: true, includeCrosshair: true) { _ in
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 3.0)
+        errorCatcher.assertNoErrors()
+    }
+
+    /// Tests takeScreenshot when only includeCrosshair is provided
+    func testTakeScreenshotWithIncludeCrosshairOnly() {
+        errorCatcher.clear()
+
+        let expectation = self.expectation(description: "Screenshot callback with includeCrosshair only")
+
+        charts.takeScreenshot(addTopLayer: nil, includeCrosshair: true) { _ in
             expectation.fulfill()
         }
 
@@ -10174,6 +10452,46 @@ final class ChartSubscriptionAndUtilityTests: XCTestCase {
         }
 
         wait(for: [expectation], timeout: 3.0)
+        errorCatcher.assertNoErrors()
+    }
+
+    /// Tests returned price line handles are usable immediately in the callback
+    func testSeriesPriceLinesReturnedHandlesAreImmediatelyUsable() {
+        errorCatcher.clear()
+
+        let series = charts.addLineSeries(options: LineSeriesOptions())
+        _ = series.createPriceLine(options: PriceLineOptions(price: 120))
+
+        waitForAsyncOperations()
+
+        let expectation = self.expectation(description: "priceLines returned handles")
+        series.priceLines { lines in
+            XCTAssertEqual(lines?.count, 1, "priceLines should return the created price line")
+            lines?.first?.applyOptions(options: PriceLineOptions(price: 121))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 3.0)
+        waitForAsyncOperations()
+        errorCatcher.assertNoErrors()
+    }
+
+    /// Tests pane priceScale handles special characters in the price scale ID
+    func testPanePriceScaleEscapesSpecialCharacters() {
+        errorCatcher.clear()
+
+        charts.addPane()
+        waitForAsyncOperations()
+
+        let expectation = self.expectation(description: "panes returned")
+        charts.panes { panes in
+            XCTAssertGreaterThan(panes.count, 1, "Expected an additional pane after addPane()")
+            _ = panes[1].priceScale(priceScaleId: "pane\"'\\scale")
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 3.0)
+        waitForAsyncOperations()
         errorCatcher.assertNoErrors()
     }
 
@@ -10384,6 +10702,27 @@ final class CrosshairAndTimeScaleParitySerializationTests: XCTestCase {
 
 final class PriceScaleLocalizationAndFormattingParitySerializationTests: XCTestCase {
 
+    func testPriceLineAxisLabelColorsSerialize() {
+        let options = PriceLineOptions(
+            price: 42,
+            axisLabelColor: "#112233",
+            axisLabelTextColor: "#ffeeaa"
+        )
+        let expectedBackground = ChartColor(rawValue: "#112233").rawValue
+        let expectedText = ChartColor(rawValue: "#ffeeaa").rawValue
+
+        let jsonString = options.jsonString
+
+        XCTAssertTrue(
+            jsonString.contains("\"axisLabelColor\":\"") && jsonString.contains(expectedBackground),
+            "axisLabelColor should serialize using ChartColor's encoded form"
+        )
+        XCTAssertTrue(
+            jsonString.contains("\"axisLabelTextColor\":\"") && jsonString.contains(expectedText),
+            "axisLabelTextColor should serialize using ChartColor's encoded form"
+        )
+    }
+
     func testPriceScaleParityFieldsSerialize() {
         let options = ChartOptions(
             rightPriceScale: VisiblePriceScaleOptions(
@@ -10415,6 +10754,43 @@ final class PriceScaleLocalizationAndFormattingParitySerializationTests: XCTestC
         )
     }
 
+    func testLocalizationTickmarkFormattersAreAppliedToJSScript() {
+        let options = ChartOptions(
+            localization: LocalizationOptions(
+                tickmarksPriceFormatter: .javaScript("(prices) => prices.map((price) => `p:${price}`)"),
+                tickmarksPercentageFormatter: .javaScript("(prices) => prices.map((price) => `${price}%`)")
+            )
+        )
+
+        let script = options.optionsScript(for: nil as ClosuresStore?)
+
+        XCTAssertTrue(
+            script.options.contains("localization.tickmarksPriceFormatter"),
+            "tickmarksPriceFormatter should be attached to localization options script"
+        )
+        XCTAssertTrue(
+            script.options.contains("localization.tickmarksPercentageFormatter"),
+            "tickmarksPercentageFormatter should be attached to localization options script"
+        )
+    }
+
+    func testLocalizationTickmarkFormatterClosureUsesJSONPromptWrapper() {
+        let options = ChartOptions(
+            localization: LocalizationOptions(
+                tickmarksPriceFormatter: .closure { prices in
+                    prices.map { "swift:\(Int($0.rounded()))" }
+                }
+            )
+        )
+
+        let script = options.optionsScript(for: nil as ClosuresStore?)
+
+        XCTAssertTrue(
+            script.options.contains("localization.tickmarksPriceFormatter = promptJsonFunction("),
+            "tickmarksPriceFormatter closures should use the JSON prompt wrapper"
+        )
+    }
+
     func testBuiltInPriceFormatBaseSerializes() {
         let lineOptions = LineSeriesOptions(
             priceFormat: .builtIn(
@@ -10424,6 +10800,44 @@ final class PriceScaleLocalizationAndFormattingParitySerializationTests: XCTestC
 
         let script = lineOptions.optionsScript(for: nil as ClosuresStore?)
         XCTAssertTrue(script.options.contains("\"base\":100"), "BuiltInPriceFormat.base should serialize")
+    }
+
+    func testCustomPriceFormatTickmarksFormatterIsAppliedToSeriesOptionsScript() {
+        let lineOptions = LineSeriesOptions(
+            priceFormat: .custom(
+                CustomPriceFormat(
+                    minMove: 0.01,
+                    formatterJavaScript: "(price) => `${price}`",
+                    tickmarksFormatterJavaScript: "(prices) => prices.map((price) => `tick:${price}`)"
+                )
+            )
+        )
+
+        let script = lineOptions.optionsScript(for: nil as ClosuresStore?)
+
+        XCTAssertTrue(
+            script.options.contains("priceFormat.tickmarksFormatter"),
+            "Custom price format tickmarksFormatter should be attached to series options script"
+        )
+    }
+
+    func testCustomPriceFormatTickmarksFormatterClosureUsesJSONPromptWrapper() {
+        let lineOptions = LineSeriesOptions(
+            priceFormat: .custom(
+                CustomPriceFormat(
+                    minMove: 0.01,
+                    formatter: { price in "\(price)" },
+                    tickmarksFormatter: { prices in prices.map { "tick:\(Int($0.rounded()))" } }
+                )
+            )
+        )
+
+        let script = lineOptions.optionsScript(for: nil as ClosuresStore?)
+
+        XCTAssertTrue(
+            script.options.contains("priceFormat.tickmarksFormatter = promptJsonFunction("),
+            "Custom price format tickmarksFormatter closures should use the JSON prompt wrapper"
+        )
     }
 
     func testPointMarkerStylingFieldsSerializeForLineAreaBaseline() {

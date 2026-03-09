@@ -115,7 +115,8 @@ final class PluginGuideTests: XCTestCase {
         // Test getMarkers
         let expectation = self.expectation(description: "Get markers")
         plugin.getMarkers { retrievedMarkers in
-            XCTAssertNotNil(retrievedMarkers)
+            XCTAssertEqual(retrievedMarkers?.count, 1)
+            XCTAssertEqual(retrievedMarkers?.first?.shape, .circle)
             expectation.fulfill()
         }
 
@@ -198,13 +199,23 @@ final class PluginGuideTests: XCTestCase {
         // Test setVisible
         plugin.setVisible(false)
 
-        // Test applyOptions
-        plugin.applyOptions(options: TextWatermarkOptions(visible: true, horizontalAlignment: .left, verticalAlignment: .top, text: "Draft", color: "rgba(0,0,0,0.3)"))
+        XCTAssertFalse(plugin.options.visible, "setVisible(false) should update stored visibility")
+        XCTAssertEqual(plugin.options.horizontalAlignment, .right, "setVisible should preserve alignment")
+        XCTAssertEqual(plugin.options.verticalAlignment, .bottom, "setVisible should preserve alignment")
+        XCTAssertEqual(plugin.options.lines.first?.text, "Draft", "setText should preserve updated text")
+
+        // Test partial applyOptions
+        plugin.applyOptions(options: TextWatermarkUpdateOptions(visible: true))
+
+        XCTAssertTrue(plugin.options.visible, "Partial update should change visibility")
+        XCTAssertEqual(plugin.options.horizontalAlignment, .right, "Partial update should preserve horizontal alignment")
+        XCTAssertEqual(plugin.options.verticalAlignment, .bottom, "Partial update should preserve vertical alignment")
+        XCTAssertEqual(plugin.options.lines.first?.text, "Draft", "Partial update should preserve lines")
 
         // Test getVisible
         let expectation = self.expectation(description: "Get visible state")
         plugin.getVisible { visible in
-            XCTAssertNotNil(visible)
+            XCTAssertEqual(visible, true)
             expectation.fulfill()
         }
 
@@ -242,9 +253,24 @@ final class PluginGuideTests: XCTestCase {
         // Test setAlpha
         plugin.setAlpha(0.3)
 
+        XCTAssertEqual(plugin.options.alpha, 0.3, accuracy: 0.0001)
+        XCTAssertEqual(plugin.options.padding, 10, "setAlpha should preserve padding")
+        XCTAssertEqual(plugin.options.maxWidth, 200)
+        XCTAssertEqual(plugin.options.maxHeight, 200)
+
+        // Test partial applyOptions
+        plugin.applyOptions(options: ImageWatermarkUpdateOptions(alpha: 0.2))
+
+        XCTAssertEqual(plugin.options.alpha, 0.2, accuracy: 0.0001)
+        XCTAssertEqual(plugin.options.padding, 10, "Partial update should preserve padding")
+        XCTAssertEqual(plugin.options.maxWidth, 200)
+        XCTAssertEqual(plugin.options.maxHeight, 200)
+
         // Test updateImage
         let newDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAABCAYAAAD5PA/NAAAADElEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         plugin.updateImage(url: newDataUrl)
+
+        XCTAssertEqual(plugin.imageUrl, newDataUrl, "updateImage should update stored URL")
 
         waitForAsyncOperations()
         errorCatcher.assertNoErrors()

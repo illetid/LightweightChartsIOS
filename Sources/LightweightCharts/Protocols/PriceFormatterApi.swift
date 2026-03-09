@@ -9,5 +9,12 @@ public protocol PriceFormatterApi: AnyObject {
      * - Parameter completion: formatted price
      */
     func format(price: BarPrice, completion: @escaping (String?) -> Void)
+
+    /**
+     * Formats tickmark values using the formatter's tickmark-specific behavior.
+     * - Parameter prices: original prices to be formatted
+     * - Parameter completion: formatted tickmark labels
+     */
+    func formatTickmarks(prices: [BarPrice], completion: @escaping ([String]?) -> Void)
     
 }

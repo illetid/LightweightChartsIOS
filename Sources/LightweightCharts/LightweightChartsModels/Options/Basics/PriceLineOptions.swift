@@ -39,6 +39,16 @@ public struct PriceLineOptions: Codable {
      Display the current price value in on the price scale
      */
     public var axisLabelVisible: Bool?
+
+    /**
+     Axis label background color on the price scale.
+     */
+    public var axisLabelColor: ChartColor?
+
+    /**
+     Axis label text color on the price scale.
+     */
+    public var axisLabelTextColor: ChartColor?
     
     /**
      Price line's on the chart pane
@@ -52,6 +62,8 @@ public struct PriceLineOptions: Codable {
                 lineStyle: LineStyle? = nil,
                 lineVisible: Bool? = nil,
                 axisLabelVisible: Bool? = nil,
+                axisLabelColor: ChartColor? = nil,
+                axisLabelTextColor: ChartColor? = nil,
                 title: String? = nil) {
         self.id = id
         self.price = price
@@ -60,6 +72,8 @@ public struct PriceLineOptions: Codable {
         self.lineStyle = lineStyle
         self.lineVisible = lineVisible
         self.axisLabelVisible = axisLabelVisible
+        self.axisLabelColor = axisLabelColor
+        self.axisLabelTextColor = axisLabelTextColor
         self.title = title
     }
     

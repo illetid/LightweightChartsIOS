@@ -112,3 +112,57 @@ extension TextWatermarkOptions {
         return string
     }
 }
+
+/**
+ Partial options for updating an existing text watermark.
+ */
+public struct TextWatermarkUpdateOptions {
+    public var visible: Bool?
+    public var horizontalAlignment: HorizontalAlignment?
+    public var verticalAlignment: VerticalAlignment?
+    public var lines: [WatermarkLine]?
+
+    public init(
+        visible: Bool? = nil,
+        horizontalAlignment: HorizontalAlignment? = nil,
+        verticalAlignment: VerticalAlignment? = nil,
+        lines: [WatermarkLine]? = nil
+    ) {
+        self.visible = visible
+        self.horizontalAlignment = horizontalAlignment
+        self.verticalAlignment = verticalAlignment
+        self.lines = lines
+    }
+
+    func merged(with current: TextWatermarkOptions) -> TextWatermarkOptions {
+        TextWatermarkOptions(
+            visible: visible ?? current.visible,
+            horizontalAlignment: horizontalAlignment ?? current.horizontalAlignment,
+            verticalAlignment: verticalAlignment ?? current.verticalAlignment,
+            lines: lines ?? current.lines
+        )
+    }
+}
+
+// MARK: - Codable
+extension TextWatermarkUpdateOptions: Codable {
+
+    enum CodingKeys: String, CodingKey {
+        case visible
+        case horizontalAlignment = "horzAlign"
+        case verticalAlignment = "vertAlign"
+        case lines
+    }
+
+}
+
+// MARK: - Encodable helper
+extension TextWatermarkUpdateOptions {
+    func jsonString() -> String {
+        guard let data = try? JSONEncoder().encode(self),
+              let string = String(data: data, encoding: .utf8) else {
+            return "{}"
+        }
+        return string
+    }
+}

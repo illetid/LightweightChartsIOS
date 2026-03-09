@@ -29,7 +29,7 @@ import Foundation
      options: options
  )
  // Later update options
- plugin.applyOptions(options: ImageWatermarkOptions(alpha: 0.3))
+ plugin.applyOptions(options: ImageWatermarkUpdateOptions(alpha: 0.3))
  // Replace the image
  plugin.updateImage(url: "https://example.com/new-watermark.png")
  // Remove when done
@@ -124,6 +124,18 @@ where Chart: JavaScriptObject {
         watermark.applyOptions(options)
     }
 
+    /// Applies a partial options patch to the image watermark.
+    ///
+    /// Unspecified fields preserve the plugin's current option state.
+    ///
+    /// - Parameter options: Partial options to apply to the watermark.
+    public func applyOptions(options: ImageWatermarkUpdateOptions) {
+        guard !isDetached, let watermark = watermark else { return }
+
+        self.options = options.merged(with: self.options)
+        watermark.applyOptions(options)
+    }
+
     /// Updates the watermark alpha (transparency).
     ///
     /// This is a convenience method that creates new options with the specified alpha
@@ -131,9 +143,7 @@ where Chart: JavaScriptObject {
     ///
     /// - Parameter alpha: The new alpha value (0.0 to 1.0).
     public func setAlpha(_ alpha: Double) {
-        var newOptions = options
-        newOptions.alpha = alpha
-        applyOptions(options: newOptions)
+        applyOptions(options: ImageWatermarkUpdateOptions(alpha: alpha))
     }
 
     // MARK: - URL Replacement
