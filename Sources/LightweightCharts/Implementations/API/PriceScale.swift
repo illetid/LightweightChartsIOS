@@ -32,4 +32,20 @@ extension PriceScale: PriceScaleApi {
         }
     }
     
+    func setVisibleRange(from: Double, to: Double) {
+        let range = FromToRange(from: from, to: to)
+        let script = "\(jsName).setVisibleRange(\(range.jsonString));"
+        context?.evaluateScript(script, completion: nil)
+    }
+    
+    func getVisibleRange(completion: @escaping (FromToRange<Double>?) -> Void) {
+        let script = "\(jsName).getVisibleRange();"
+        context?.decodedResult(forScript: script, completion: completion)
+    }
+    
+    func setAutoScale(on: Bool) {
+        let script = "\(jsName).setAutoScale(\(on ? "true" : "false"));"
+        context?.evaluateScript(script, completion: nil)
+    }
+    
 }

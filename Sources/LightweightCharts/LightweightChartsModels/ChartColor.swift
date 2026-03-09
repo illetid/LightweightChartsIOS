@@ -26,7 +26,20 @@ public final class ChartColor: UIColor, @unchecked Sendable {
 }
 
 // MARK: - Codable
-extension ChartColor: Codable { }
+extension ChartColor: Codable {
+
+    public convenience init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        self.init(rawValue: raw)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+}
 
 // MARK: - RawRepresentable
 extension ChartColor: RawRepresentable {

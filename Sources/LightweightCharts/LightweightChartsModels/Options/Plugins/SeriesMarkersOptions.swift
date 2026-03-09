@@ -1,5 +1,11 @@
 import Foundation
 
+public enum SeriesMarkerZOrder: String, Codable {
+    case top
+    case aboveSeries
+    case normal
+}
+
 /**
  Options for the series markers plugin.
 
@@ -23,12 +29,16 @@ public struct SeriesMarkersOptions {
      */
     public var autoScale: Bool?
 
+    public var zOrder: SeriesMarkerZOrder?
+
     public init(
         active: Bool? = nil,
-        autoScale: Bool? = nil
+        autoScale: Bool? = nil,
+        zOrder: SeriesMarkerZOrder? = nil
     ) {
         self.active = active
         self.autoScale = autoScale
+        self.zOrder = zOrder
     }
 }
 
@@ -38,6 +48,7 @@ extension SeriesMarkersOptions: Codable {
     enum CodingKeys: String, CodingKey {
         case active
         case autoScale
+        case zOrder
     }
 
 }

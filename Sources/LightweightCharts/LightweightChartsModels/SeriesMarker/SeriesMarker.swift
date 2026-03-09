@@ -4,6 +4,9 @@ public enum SeriesMarkerPosition: String, Codable {
     case aboveBar
     case belowBar
     case inBar
+    case atPriceTop
+    case atPriceBottom
+    case atPriceMiddle
 }
 
 // MARK: -
@@ -24,6 +27,7 @@ public struct SeriesMarker: Codable {
     public var id: String?
     public var text: String?
     public var size: Double?
+    public var price: Double?
     
     public init(time: Time,
                 position: SeriesMarkerPosition,
@@ -31,7 +35,8 @@ public struct SeriesMarker: Codable {
                 color: ChartColor,
                 id: String? = nil,
                 text: String? = nil,
-                size: Double? = nil) {
+                size: Double? = nil,
+                price: Double? = nil) {
         self.time = time
         self.position = position
         self.shape = shape
@@ -39,6 +44,7 @@ public struct SeriesMarker: Codable {
         self.id = id
         self.text = text
         self.size = size
+        self.price = price
     }
     
 }

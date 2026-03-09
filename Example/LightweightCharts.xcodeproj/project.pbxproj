@@ -49,8 +49,12 @@
 		CE48520723A3A0000033EE94 /* MarkersPluginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE48520523A3A0000033EE94 /* MarkersPluginViewController.swift */; };
 		CE48520923A3B1000033EE94 /* UpDownMarkersViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE48520B23A3B1000033EE94 /* UpDownMarkersViewController.swift */; };
 		CE48520D23A3B1000033EE94 /* MultiplePanesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE48520C23A3B1000033EE94 /* MultiplePanesViewController.swift */; };
+		AA51000100000001AAAAAAAA /* PricePositionedMarkersViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000100000002AAAAAAAA /* PricePositionedMarkersViewController.swift */; };
+		AA51000200000001AAAAAAAA /* SeriesOrderViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000200000002AAAAAAAA /* SeriesOrderViewController.swift */; };
+		AA51000300000001AAAAAAAA /* PriceScaleRangeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000300000002AAAAAAAA /* PriceScaleRangeViewController.swift */; };
+		AA51000400000001AAAAAAAA /* DataConflationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000400000002AAAAAAAA /* DataConflationViewController.swift */; };
+		AA51000500000001AAAAAAAA /* PaneSizingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000500000002AAAAAAAA /* PaneSizingViewController.swift */; };
 		CE5054042397AF9400143B03 /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5054032397AF9400143B03 /* TooltipView.swift */; };
-		E804BA1FA37FDDE1D4F872B3 /* MigrationGuideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E919648C39E1D51687AC9501 /* MigrationGuideTests.swift */; };
 		EX0000000000000000000001 /* ExampleComponentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EX0000000000000000000002 /* ExampleComponentsTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -89,6 +93,11 @@
 		CE48520A23A3B3FB0033EE94 /* AddAndRemovePriceLineViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAndRemovePriceLineViewController.swift; sourceTree = "<group>"; };
 		CE48520B23A3B1000033EE94 /* UpDownMarkersViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpDownMarkersViewController.swift; sourceTree = "<group>"; };
 		CE48520C23A3B1000033EE94 /* MultiplePanesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiplePanesViewController.swift; sourceTree = "<group>"; };
+		AA51000100000002AAAAAAAA /* PricePositionedMarkersViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricePositionedMarkersViewController.swift; sourceTree = "<group>"; };
+		AA51000200000002AAAAAAAA /* SeriesOrderViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeriesOrderViewController.swift; sourceTree = "<group>"; };
+		AA51000300000002AAAAAAAA /* PriceScaleRangeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceScaleRangeViewController.swift; sourceTree = "<group>"; };
+		AA51000400000002AAAAAAAA /* DataConflationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataConflationViewController.swift; sourceTree = "<group>"; };
+		AA51000500000002AAAAAAAA /* PaneSizingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneSizingViewController.swift; sourceTree = "<group>"; };
 		CE5053CE2397AF6D00143B03 /* ThreeLineLegendViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreeLineLegendViewController.swift; sourceTree = "<group>"; };
 		CE5053CF2397AF6D00143B03 /* CustomFontFamilyViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomFontFamilyViewController.swift; sourceTree = "<group>"; };
 		CE5053D02397AF6D00143B03 /* VolumeStudyViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VolumeStudyViewController.swift; sourceTree = "<group>"; };
@@ -117,7 +126,6 @@
 		CE5054032397AF9400143B03 /* TooltipView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TooltipView.swift; sourceTree = "<group>"; };
 		D15F5488740ED53AF7EE1738 /* ImageWatermarkViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageWatermarkViewController.swift; path = LightweightCharts/Example/ImageWatermarkViewController.swift; sourceTree = "<group>"; };
 		D523CE8978B70BDFD5503282 /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = LICENSE; path = ../LICENSE; sourceTree = "<group>"; };
-		E919648C39E1D51687AC9501 /* MigrationGuideTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MigrationGuideTests.swift; sourceTree = "<group>"; };
 		EFA6726F0ECE5AC37208CF71 /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../README.md; sourceTree = "<group>"; };
 		EX0000000000000000000002 /* ExampleComponentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleComponentsTests.swift; sourceTree = "<group>"; };
 		F7077E3B2D7808CE84D6CDF5 /* PluginFileInclusionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PluginFileInclusionTests.swift; sourceTree = "<group>"; };
@@ -207,7 +215,6 @@
 				F7077E3B2D7808CE84D6CDF5 /* PluginFileInclusionTests.swift */,
 				C2D10F3CD075D5101900A7D3 /* JSErrorCatcher.swift */,
 				0530C8B39A819F25A32663C7 /* PluginGuideTests.swift */,
-				E919648C39E1D51687AC9501 /* MigrationGuideTests.swift */,
 				8AB4BD2CD6CE0181125EA1CD /* PlatformMetadataTests.swift */,
 			);
 			path = Tests;
@@ -282,6 +289,11 @@
 				CE48520C23A3B1000033EE94 /* MultiplePanesViewController.swift */,
 				CE48520823A3B00E0033EE94 /* PriceLineViewController.swift */,
 				CE48520A23A3B3FB0033EE94 /* AddAndRemovePriceLineViewController.swift */,
+				AA51000100000002AAAAAAAA /* PricePositionedMarkersViewController.swift */,
+				AA51000200000002AAAAAAAA /* SeriesOrderViewController.swift */,
+				AA51000300000002AAAAAAAA /* PriceScaleRangeViewController.swift */,
+				AA51000400000002AAAAAAAA /* DataConflationViewController.swift */,
+				AA51000500000002AAAAAAAA /* PaneSizingViewController.swift */,
 			);
 			path = Example;
 			sourceTree = "<group>";
@@ -524,6 +536,11 @@
 				8C8C291F24D163AB00EC537E /* BarChartViewController.swift in Sources */,
 				8C8C293224D1666600EC537E /* ThreeLineLegendViewController.swift in Sources */,
 				9DFF13DDED3DF76EFCF57416 /* ImageWatermarkViewController.swift in Sources */,
+				AA51000100000001AAAAAAAA /* PricePositionedMarkersViewController.swift in Sources */,
+				AA51000200000001AAAAAAAA /* SeriesOrderViewController.swift in Sources */,
+				AA51000300000001AAAAAAAA /* PriceScaleRangeViewController.swift in Sources */,
+				AA51000400000001AAAAAAAA /* DataConflationViewController.swift in Sources */,
+				AA51000500000001AAAAAAAA /* PaneSizingViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -536,7 +553,6 @@
 				553BBEF1504910A67881628E /* PluginFileInclusionTests.swift in Sources */,
 				0EFE70FBB7ED93351AC798ED /* JSErrorCatcher.swift in Sources */,
 				CA1F81DCA394E4073F3F9F0E /* PluginGuideTests.swift in Sources */,
-				E804BA1FA37FDDE1D4F872B3 /* MigrationGuideTests.swift in Sources */,
 				90E11C75F52563DB19CEB204 /* PlatformMetadataTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

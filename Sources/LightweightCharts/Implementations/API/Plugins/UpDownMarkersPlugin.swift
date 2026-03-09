@@ -87,7 +87,13 @@ where Series: UpDownMarkersSupported {
     public func setMarkers(_ data: [SeriesUpDownMarker]) {
         guard !isDetached, series != nil else { return }
 
-        let script = "\(jsName).setMarkers(\(data.jsonString));"
+        let script = """
+        if (typeof \(jsName).setMarkers === 'function') {
+            \(jsName).setMarkers(\(data.jsonString));
+        } else if (typeof \(jsName).setData === 'function') {
+            \(jsName).setData(\(data.jsonString));
+        }
+        """
         evaluateScript(script, completion: nil)
     }
 
@@ -127,7 +133,17 @@ where Series: UpDownMarkersSupported {
         guard !isDetached, series != nil else { return }
 
         let isUpdateJson = isUpdate != nil ? ", \(isUpdate!)" : ""
-        let script = "\(jsName).update(\(bar.jsonString)\(isUpdateJson));"
+        let script = """
+        try {
+            if (typeof \(jsName).update === 'function') {
+                \(jsName).update(\(bar.jsonString)\(isUpdateJson));
+            } else if (typeof \(jsName).setData === 'function') {
+                \(jsName).setData([\(bar.jsonString)]);
+            }
+        } catch (e) {
+            console.warn('UpDownMarkersPlugin.update(data) failed:', e);
+        }
+        """
         evaluateScript(script, completion: nil)
     }
 
@@ -138,7 +154,19 @@ where Series: UpDownMarkersSupported {
     ///
     /// - Parameter marker: The marker to update.
     public func update(_ marker: SeriesUpDownMarker) {
-        let script = "\(jsName).update(\(marker.jsonString));"
+        guard !isDetached, series != nil else { return }
+
+        let script = """
+        try {
+            if (typeof \(jsName).update === 'function') {
+                \(jsName).update(\(marker.jsonString));
+            } else if (typeof \(jsName).setMarkers === 'function') {
+                \(jsName).setMarkers([\(marker.jsonString)]);
+            }
+        } catch (e) {
+            console.warn('UpDownMarkersPlugin.update(marker) failed:', e);
+        }
+        """
         evaluateScript(script, completion: nil)
     }
 

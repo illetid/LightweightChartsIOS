@@ -41,6 +41,11 @@ class TableViewController: UITableViewController {
                     Row(title: "Markers Plugin", subtitle: "Explicit markers plugin API", viewController: { MarkersPluginViewController() }),
                     Row(title: "Up-Down Markers Plugin", subtitle: "Directional markers plugin", viewController: { UpDownMarkersViewController() }),
                     Row(title: "Multiple Panes", subtitle: "Candlestick + volume with add/remove/swap pane buttons", viewController: { MultiplePanesViewController() }),
+                    Row(title: "Price-Positioned Markers", subtitle: "Markers at exact price levels", viewController: { PricePositionedMarkersViewController() }),
+                    Row(title: "Series Order", subtitle: "Toggle rendering order of overlapping series", viewController: { SeriesOrderViewController() }),
+                    Row(title: "Price Scale Range", subtitle: "Set/get visible price range, auto-scale", viewController: { PriceScaleRangeViewController() }),
+                    Row(title: "Data Conflation", subtitle: "Toggle conflation on large dataset (15K points)", viewController: { DataConflationViewController() }),
+                    Row(title: "Pane Sizing", subtitle: "Stretch factor & height control for panes", viewController: { PaneSizingViewController() }),
                 ]
             ),
 

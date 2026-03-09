@@ -142,4 +142,30 @@ public protocol SeriesApi: AnyObject {
      * - Parameter completion: this SeriesType
      */
     func seriesType(completion: @escaping (SeriesType?) -> Void)
+    
+    /**
+     * Returns the current rendering order of this series within its pane.
+     * - Parameter completion: the series order value
+     */
+    func seriesOrder(completion: @escaping (Int?) -> Void)
+    
+    /**
+     * Sets the rendering order of this series within its pane.
+     * - Parameter order: the new order value
+     */
+    func setSeriesOrder(order: Int)
+    
+    /**
+     * Removes data points from the end of the series.
+     * - Parameter count: number of data points to remove
+     * - Parameter completion: the removed data points
+     */
+    func pop(count: Int, completion: @escaping ([TickValue]?) -> Void)
+    
+    /**
+     * Retrieves last value data including price and color.
+     * - Parameter globalLast: if true, returns the last value across all series
+     * - Parameter completion: the last value data result
+     */
+    func lastValueData(globalLast: Bool, completion: @escaping (LastValueDataResult?) -> Void)
 }

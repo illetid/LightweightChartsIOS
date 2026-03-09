@@ -88,7 +88,11 @@ public extension SeriesApi where Self: SeriesObject {
         if (typeof \(jsName)._lwcMarkersPlugin === 'undefined') {
             \(jsName)._lwcMarkersPlugin = LightweightCharts.createSeriesMarkers(\(jsName), \(data.jsonString));
         } else {
-            \(jsName)._lwcMarkersPlugin.setMarkers(\(data.jsonString));
+            if (typeof \(jsName)._lwcMarkersPlugin.setMarkers === 'function') {
+                \(jsName)._lwcMarkersPlugin.setMarkers(\(data.jsonString));
+            } else if (typeof \(jsName)._lwcMarkersPlugin.setData === 'function') {
+                \(jsName)._lwcMarkersPlugin.setData(\(data.jsonString));
+            }
         }
         """
         context.evaluateScript(script, completion: nil)
@@ -97,7 +101,7 @@ public extension SeriesApi where Self: SeriesObject {
     func markers(completion: @escaping ([SeriesMarker]?) -> Void) {
         // v5 compatibility: query markers from internal plugin if it exists
         let script = """
-        (typeof \(jsName)._lwcMarkersPlugin !== 'undefined') ? \(jsName)._lwcMarkersPlugin.markers() : [];
+        (typeof \(jsName)._lwcMarkersPlugin !== 'undefined') ? \(jsName)._lwcMarkersPlugin.markers() : null;
         """
         context.decodedResult(forScript: script, completion: completion)
     }
@@ -137,6 +141,28 @@ public extension SeriesApi where Self: SeriesObject {
     
     func seriesType(completion: @escaping (SeriesType?) -> Void) {
         let script = "\(jsName).seriesType();"
+        context.decodedResult(forScript: script, completion: completion)
+    }
+    
+    func seriesOrder(completion: @escaping (Int?) -> Void) {
+        let script = "\(jsName).seriesOrder();"
+        context.evaluateScript(script) { result, _ in
+            completion((result as? NSNumber)?.intValue)
+        }
+    }
+    
+    func setSeriesOrder(order: Int) {
+        let script = "\(jsName).setSeriesOrder(\(order));"
+        context.evaluateScript(script, completion: nil)
+    }
+    
+    func pop(count: Int, completion: @escaping ([TickValue]?) -> Void) {
+        let script = "JSON.stringify(\(jsName).pop(\(count)));"
+        context.decodedResult(forScript: script, completion: completion)
+    }
+    
+    func lastValueData(globalLast: Bool, completion: @escaping (LastValueDataResult?) -> Void) {
+        let script = "JSON.stringify(\(jsName).lastValueData(\(globalLast ? "true" : "false")));"
         context.decodedResult(forScript: script, completion: completion)
     }
     

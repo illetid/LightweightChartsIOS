@@ -18,8 +18,24 @@ class PlatformMetadataTests: XCTestCase {
 
     // MARK: - File Paths
 
+    private static let projectRootURL: URL = {
+        let fileManager = FileManager.default
+        var candidate = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+
+        for _ in 0..<10 {
+            let podspec = candidate.appendingPathComponent("LightweightCharts.podspec").path
+            let packageSwift = candidate.appendingPathComponent("Package.swift").path
+            if fileManager.fileExists(atPath: podspec) && fileManager.fileExists(atPath: packageSwift) {
+                return candidate
+            }
+            candidate.deleteLastPathComponent()
+        }
+
+        return URL(fileURLWithPath: fileManager.currentDirectoryPath)
+    }()
+
     private var projectRoot: String {
-        return FileManager.default.currentDirectoryPath
+        return Self.projectRootURL.path
     }
 
     private var podspecPath: String {
@@ -66,10 +82,9 @@ class PlatformMetadataTests: XCTestCase {
             return
         }
 
-        // Check for the correct deployment target line
-        let expectedLine = "s.ios.deployment_target = '\(expectediOSVersion)'"
-        XCTAssertTrue(content.contains(expectedLine),
-                     "LightweightCharts.podspec should specify iOS \(expectediOSVersion)")
+        let parsedVersion = extractiOSVersion(fromPodspec: content)
+        XCTAssertEqual(parsedVersion, expectediOSVersion,
+                       "LightweightCharts.podspec should specify iOS \(expectediOSVersion), found: \(parsedVersion ?? "nil")")
     }
 
     // MARK: - Package.swift Tests

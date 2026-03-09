@@ -121,6 +121,16 @@ public struct MouseEventParams: Codable {
     public let hoveredSeries: String?
     
     private let seriesData: [String: EventPrices?]
+
+    enum CodingKeys: String, CodingKey {
+        case time
+        case logical
+        case point
+        case hoveredObjectId
+        case sourceEvent
+        case hoveredSeries
+        case seriesData
+    }
     
     public init(time: EventTime?, logical: Int?, point: Point?, hoveredObjectId: Int?, sourceEvent: TouchMouseEventData?, hoveredSeries: String?) {
         self.time = time
@@ -130,6 +140,17 @@ public struct MouseEventParams: Codable {
         self.sourceEvent = sourceEvent
         self.seriesData = [:]
         self.hoveredSeries = hoveredSeries
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        time = try container.decodeIfPresent(EventTime.self, forKey: .time)
+        logical = try container.decodeIfPresent(Int.self, forKey: .logical)
+        point = try container.decodeIfPresent(Point.self, forKey: .point)
+        hoveredObjectId = try container.decodeIfPresent(Int.self, forKey: .hoveredObjectId)
+        sourceEvent = try container.decodeIfPresent(TouchMouseEventData.self, forKey: .sourceEvent)
+        hoveredSeries = try container.decodeIfPresent(String.self, forKey: .hoveredSeries)
+        seriesData = try container.decodeIfPresent([String: EventPrices?].self, forKey: .seriesData) ?? [:]
     }
     
     public func price(forSeries series: SeriesObject) -> EventPrices? {
@@ -180,6 +201,32 @@ extension EventPrices: Codable, Equatable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
+
+        struct EventLineValue: Decodable {
+            let value: Double?
+        }
+
+        struct EventBarValue: Decodable {
+            let open: Double?
+            let high: Double?
+            let low: Double?
+            let close: Double?
+        }
+
+        if let lineValue = try? container.decode(EventLineValue.self), let value = lineValue.value {
+            self = .lineData(LineData(time: .utc(timestamp: 0), value: value))
+            return
+        }
+
+        if let barValue = try? container.decode(EventBarValue.self),
+           let open = barValue.open,
+           let high = barValue.high,
+           let low = barValue.low,
+           let close = barValue.close {
+            self = .barData(BarData(time: .utc(timestamp: 0), open: open, high: high, low: low, close: close))
+            return
+        }
+
         if let lineData = try? container.decode(LineData.self), lineData.value != nil {
             self = .lineData(lineData)
         } else if let barData = try? container.decode(BarData.self) {

@@ -1,5 +1,11 @@
 import Foundation
 
+public enum ConflationPriority: String, Codable {
+    case background
+    case userVisible = "user-visible"
+    case userBlocking = "user-blocking"
+}
+
 public struct TimeScaleOptions {
     
     public var rightOffset: Double?
@@ -20,6 +26,10 @@ public struct TimeScaleOptions {
     public var tickMarkMaxCharacterLength: Int?
     public var minimumHeight: Double?
     public var ticksVisible: Bool?
+    public var enableConflation: Bool?
+    public var conflationThresholdFactor: Double?
+    public var precomputeConflationOnInit: Bool?
+    public var precomputeConflationPriority: ConflationPriority?
     
     public var tickMarkFormatter: JavaScriptMethod<TickMarkFormatterParameters, String>? {
         get {
@@ -49,6 +59,10 @@ public struct TimeScaleOptions {
                 tickMarkMaxCharacterLength: Int? = nil,
                 minimumHeight: Double? = nil,
                 ticksVisible: Bool? = nil,
+                enableConflation: Bool? = nil,
+                conflationThresholdFactor: Double? = nil,
+                precomputeConflationOnInit: Bool? = nil,
+                precomputeConflationPriority: ConflationPriority? = nil,
                 tickMarkFormatter: JavaScriptMethod<TickMarkFormatterParameters, String>? = nil) {
         self.rightOffset = rightOffset
         self.barSpacing = barSpacing
@@ -68,6 +82,10 @@ public struct TimeScaleOptions {
         self.tickMarkMaxCharacterLength = tickMarkMaxCharacterLength
         self.minimumHeight = minimumHeight
         self.ticksVisible = ticksVisible
+        self.enableConflation = enableConflation
+        self.conflationThresholdFactor = conflationThresholdFactor
+        self.precomputeConflationOnInit = precomputeConflationOnInit
+        self.precomputeConflationPriority = precomputeConflationPriority
         self.tickMarkFormatter = tickMarkFormatter
     }
 
@@ -94,6 +112,10 @@ extension TimeScaleOptions: Codable {
         case allowShiftVisibleRangeOnWhitespaceReplacement
         case tickMarkMaxCharacterLength
         case minimumHeight
+        case enableConflation
+        case conflationThresholdFactor
+        case precomputeConflationOnInit
+        case precomputeConflationPriority
     }
     
 }

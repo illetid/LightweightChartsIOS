@@ -74,7 +74,7 @@ final class PluginGuideTests: XCTestCase {
         )
 
         let pluginWithOptions: any PluginWithOptions = markersPlugin
-        XCTAssertNotNil(pluginWithOptions, "SeriesMarkersPlugin should conform to PluginWithOptions")
+        _ = pluginWithOptions
 
         // Test applyOptions
         let newOptions = SeriesMarkersOptions()

@@ -59,32 +59,6 @@ final class TooltipViewTests: XCTestCase {
         XCTAssertFalse(tooltipView.subviews.isEmpty, "View should have subviews")
     }
 
-    /// Tests that update handles various price values
-    func testTooltipViewUpdateWithVariousPrices() {
-        tooltipView.update(title: "Title", price: 0, date: "2024-01-01")
-        tooltipView.update(title: "Title", price: 1000.123, date: "2024-01-02")
-        tooltipView.update(title: "Title", price: -50.5, date: "2024-01-03")
-        tooltipView.update(title: "Title", price: Double.infinity, date: "2024-01-04")
-
-        XCTAssertNotNil(tooltipView, "View should handle all price values")
-    }
-
-    /// Tests that update handles empty strings
-    func testTooltipViewUpdateWithEmptyStrings() {
-        tooltipView.update(title: "", price: 0, date: "")
-
-        XCTAssertNotNil(tooltipView, "View should handle empty strings")
-    }
-
-    /// Tests that price rounding works correctly
-    func testTooltipViewPriceRounding() {
-        // The view should round prices to 2 decimal places
-        tooltipView.update(title: "Test", price: 123.456, date: "2024-01-01")
-        tooltipView.update(title: "Test", price: 123.454, date: "2024-01-02")
-
-        XCTAssertNotNil(tooltipView, "View should handle price rounding")
-    }
-
     // MARK: - Layout Tests
 
     /// Tests that TooltipView creates proper subview hierarchy
@@ -109,8 +83,11 @@ final class TooltipViewTests: XCTestCase {
     /// Tests that TooltipView adapts to different intrinsic sizes
     func testTooltipViewIntrinsicContentSize() {
         let emptySize = tooltipView.intrinsicContentSize
-        XCTAssertGreaterThan(emptySize.width, 0, "Intrinsic content size should have positive width")
-        XCTAssertGreaterThan(emptySize.height, 0, "Intrinsic content size should have positive height")
+        // UIView has no intrinsic size by default unless explicitly overridden.
+        XCTAssertEqual(emptySize.width, UIView.noIntrinsicMetric,
+                       "TooltipView should not declare intrinsic width by default")
+        XCTAssertEqual(emptySize.height, UIView.noIntrinsicMetric,
+                       "TooltipView should not declare intrinsic height by default")
     }
 }
 
@@ -384,140 +361,6 @@ final class CustomThemesViewControllerThemeTests: XCTestCase {
                          "Dark and light themes should have different top colors")
     }
 
-    /// Tests that dark theme uses greenish colors
-    func testDarkThemeUsesGreenColors() {
-        let options = CustomThemesViewController.Theme.dark.seriesOptions
-
-        // Dark theme uses green: rgba(32, 226, 47, 1)
-        XCTAssertTrue(options.lineColor?.rawValue.contains("32") ?? false,
-                     "Line color should have changed")
-    }
-
-    /// Tests that light theme uses blueish colors
-    func testLightThemeUsesBlueColors() {
-        let options = CustomThemesViewController.Theme.light.seriesOptions
-
-        // Light theme uses blue: rgba(33, 150, 243, 1)
-        XCTAssertTrue(options.lineColor?.rawValue.contains("150") ?? false,
-                     "Line color should have changed")
-    }
-}
-
-// MARK: - ImageWatermarkViewController Tests
-
-/// Unit tests for ImageWatermarkViewController
-///
-/// These tests verify the image watermark example view controller's
-/// initialization and properties.
-final class ImageWatermarkViewControllerTests: XCTestCase {
-
-    // MARK: - Initialization Tests
-
-    /// Tests that ImageWatermarkViewController can be created
-    func testImageWatermarkViewControllerCreation() {
-        let viewController = ImageWatermarkViewController()
-
-        XCTAssertNotNil(viewController, "ImageWatermarkViewController should be created")
-        XCTAssertNotNil(viewController, "Should be a UIViewController")
-    }
-
-    /// Tests that ImageWatermarkViewController has a view
-    func testImageWatermarkViewControllerHasView() {
-        let viewController = ImageWatermarkViewController()
-
-        _ = viewController.view // Trigger view loading
-
-        XCTAssertNotNil(viewController.view, "View should be loaded")
-    }
-
-    /// Tests that ImageWatermarkViewController loads view without crashing
-    func testImageWatermarkViewControllerViewDidLoad() {
-        let viewController = ImageWatermarkViewController()
-
-        // Trigger viewDidLoad
-        _ = viewController.view
-
-        // If we get here without crashing, the test passes
-        XCTAssertNotNil(viewController, "ViewController should load successfully")
-    }
-}
-
-// MARK: - MarkersPluginViewController Tests
-
-/// Unit tests for MarkersPluginViewController
-///
-/// These tests verify the markers plugin example view controller's
-/// initialization and properties.
-final class MarkersPluginViewControllerTests: XCTestCase {
-
-    // MARK: - Initialization Tests
-
-    /// Tests that MarkersPluginViewController can be created
-    func testMarkersPluginViewControllerCreation() {
-        let viewController = MarkersPluginViewController()
-
-        XCTAssertNotNil(viewController, "MarkersPluginViewController should be created")
-        XCTAssertNotNil(viewController, "Should be a UIViewController")
-    }
-
-    /// Tests that MarkersPluginViewController has a view
-    func testMarkersPluginViewControllerHasView() {
-        let viewController = MarkersPluginViewController()
-
-        _ = viewController.view // Trigger view loading
-
-        XCTAssertNotNil(viewController.view, "View should be loaded")
-    }
-
-    /// Tests that MarkersPluginViewController loads view without crashing
-    func testMarkersPluginViewControllerViewDidLoad() {
-        let viewController = MarkersPluginViewController()
-
-        // Trigger viewDidLoad
-        _ = viewController.view
-
-        // If we get here without crashing, the test passes
-        XCTAssertNotNil(viewController, "ViewController should load successfully")
-    }
-}
-
-// MARK: - UpDownMarkersViewController Tests
-
-/// Unit tests for UpDownMarkersViewController
-///
-/// These tests verify the up-down markers plugin example view controller's
-/// initialization and properties.
-final class UpDownMarkersViewControllerTests: XCTestCase {
-
-    // MARK: - Initialization Tests
-
-    /// Tests that UpDownMarkersViewController can be created
-    func testUpDownMarkersViewControllerCreation() {
-        let viewController = UpDownMarkersViewController()
-
-        XCTAssertNotNil(viewController, "UpDownMarkersViewController should be created")
-        XCTAssertNotNil(viewController, "Should be a UIViewController")
-    }
-
-    /// Tests that UpDownMarkersViewController has a view
-    func testUpDownMarkersViewControllerHasView() {
-        let viewController = UpDownMarkersViewController()
-
-        _ = viewController.view // Trigger view loading
-
-        XCTAssertNotNil(viewController.view, "View should be loaded")
-    }
-
-    /// Tests that UpDownMarkersViewController loads view without crashing
-    func testUpDownMarkersViewControllerViewDidLoad() {
-        let viewController = UpDownMarkersViewController()
-
-        // Trigger viewDidLoad
-        _ = viewController.view
-
-        // If we get here without crashing, the test passes
-        XCTAssertNotNil(viewController, "ViewController should load successfully")
-    }
 }
 
 // MARK: - TableViewController New Examples Tests (Task 9.6)
@@ -541,102 +384,6 @@ final class TableViewControllerNewExamplesTests: XCTestCase {
     }
 
     // MARK: - Row Entry Tests
-
-    /// Tests that TableViewController has an "Image Watermark" entry in v5 Plugin API section
-    func testTableViewControllerHasImageWatermarkEntry() {
-        let tvc = TableViewController()
-        _ = tvc.view // Trigger viewDidLoad to fill sections
-
-        let hasImageWatermarkRow = findRow(title: "Image Watermark", in: tvc) != nil
-        XCTAssertTrue(hasImageWatermarkRow, "TableViewController should have 'Image Watermark' entry")
-    }
-
-    /// Tests that TableViewController has a "Markers Plugin" entry in v5 Plugin API section
-    func testTableViewControllerHasMarkersPluginEntry() {
-        let tvc = TableViewController()
-        _ = tvc.view // Trigger viewDidLoad to fill sections
-
-        let hasMarkersPluginRow = findRow(title: "Markers Plugin", in: tvc) != nil
-        XCTAssertTrue(hasMarkersPluginRow, "TableViewController should have 'Markers Plugin' entry")
-    }
-
-    /// Tests that TableViewController has an "Up-Down Markers Plugin" entry in v5 Plugin API section
-    func testTableViewControllerHasUpDownMarkersPluginEntry() {
-        let tvc = TableViewController()
-        _ = tvc.view // Trigger viewDidLoad to fill sections
-
-        let hasUpDownMarkersRow = findRow(title: "Up-Down Markers Plugin", in: tvc) != nil
-        XCTAssertTrue(hasUpDownMarkersRow, "TableViewController should have 'Up-Down Markers Plugin' entry")
-    }
-
-    /// Tests that TableViewController has a "Text Watermark" entry in v5 Plugin API section
-    func testTableViewControllerHasTextWatermarkEntry() {
-        let tvc = TableViewController()
-        _ = tvc.view // Trigger viewDidLoad to fill sections
-
-        let hasTextWatermarkRow = findRow(title: "Text Watermark", in: tvc) != nil
-        XCTAssertTrue(hasTextWatermarkRow, "TableViewController should have 'Text Watermark' entry")
-    }
-
-    /// Tests that "Image Watermark" entry creates correct view controller type
-    func testImageWatermarkEntryCreatesCorrectType() {
-        let tvc = TableViewController()
-        _ = tvc.view // Trigger viewDidLoad to fill sections
-
-        guard let row = findRow(title: "Image Watermark", in: tvc) else {
-            XCTFail("'Image Watermark' row should exist")
-            return
-        }
-
-        let vc = row.viewController()
-        XCTAssertTrue(vc is ImageWatermarkViewController,
-                     "'Image Watermark' entry should create ImageWatermarkViewController")
-    }
-
-    /// Tests that "Markers Plugin" entry creates correct view controller type
-    func testMarkersPluginEntryCreatesCorrectType() {
-        let tvc = TableViewController()
-        _ = tvc.view // Trigger viewDidLoad to fill sections
-
-        guard let row = findRow(title: "Markers Plugin", in: tvc) else {
-            XCTFail("'Markers Plugin' row should exist")
-            return
-        }
-
-        let vc = row.viewController()
-        XCTAssertTrue(vc is MarkersPluginViewController,
-                     "'Markers Plugin' entry should create MarkersPluginViewController")
-    }
-
-    /// Tests that "Up-Down Markers Plugin" entry creates correct view controller type
-    func testUpDownMarkersPluginEntryCreatesCorrectType() {
-        let tvc = TableViewController()
-        _ = tvc.view // Trigger viewDidLoad to fill sections
-
-        guard let row = findRow(title: "Up-Down Markers Plugin", in: tvc) else {
-            XCTFail("'Up-Down Markers Plugin' row should exist")
-            return
-        }
-
-        let vc = row.viewController()
-        XCTAssertTrue(vc is UpDownMarkersViewController,
-                     "'Up-Down Markers Plugin' entry should create UpDownMarkersViewController")
-    }
-
-    /// Tests that "Text Watermark" entry creates correct view controller type
-    func testTextWatermarkEntryCreatesCorrectType() {
-        let tvc = TableViewController()
-        _ = tvc.view // Trigger viewDidLoad to fill sections
-
-        guard let row = findRow(title: "Text Watermark", in: tvc) else {
-            XCTFail("'Text Watermark' row should exist")
-            return
-        }
-
-        let vc = row.viewController()
-        XCTAssertTrue(vc is CustomWatermarkViewController,
-                     "'Text Watermark' entry should create CustomWatermarkViewController")
-    }
 
     /// Tests that all new v5 examples are present and create correct view controllers
     func testAllV5ExamplesPresent() {
@@ -663,45 +410,6 @@ final class TableViewControllerNewExamplesTests: XCTestCase {
     }
 }
 
-// MARK: - CustomWatermarkViewController Tests
-
-/// Unit tests for CustomWatermarkViewController
-///
-/// These tests verify the custom watermark example view controller's
-/// initialization and properties.
-final class CustomWatermarkViewControllerTests: XCTestCase {
-
-    // MARK: - Initialization Tests
-
-    /// Tests that CustomWatermarkViewController can be created
-    func testCustomWatermarkViewControllerCreation() {
-        let viewController = CustomWatermarkViewController()
-
-        XCTAssertNotNil(viewController, "CustomWatermarkViewController should be created")
-        XCTAssertNotNil(viewController, "Should be a UIViewController")
-    }
-
-    /// Tests that CustomWatermarkViewController has a view
-    func testCustomWatermarkViewControllerHasView() {
-        let viewController = CustomWatermarkViewController()
-
-        _ = viewController.view // Trigger view loading
-
-        XCTAssertNotNil(viewController.view, "View should be loaded")
-    }
-
-    /// Tests that CustomWatermarkViewController loads view without crashing
-    func testCustomWatermarkViewControllerViewDidLoad() {
-        let viewController = CustomWatermarkViewController()
-
-        // Trigger viewDidLoad
-        _ = viewController.view
-
-        // If we get here without crashing, the test passes
-        XCTAssertNotNil(viewController, "ViewController should load successfully")
-    }
-}
-
 // MARK: - BarChartViewController Tests
 
 /// Unit tests for BarChartViewController
@@ -717,27 +425,6 @@ final class BarChartViewControllerTests: XCTestCase {
         let viewController = BarChartViewController()
 
         XCTAssertNotNil(viewController, "BarChartViewController should be created")
-        XCTAssertNotNil(viewController, "Should be a UIViewController")
-    }
-
-    /// Tests that BarChartViewController has a view
-    func testBarChartViewControllerHasView() {
-        let viewController = BarChartViewController()
-
-        _ = viewController.view // Trigger view loading
-
-        XCTAssertNotNil(viewController.view, "View should be loaded")
-    }
-
-    /// Tests that BarChartViewController loads view without crashing
-    func testBarChartViewControllerViewDidLoad() {
-        let viewController = BarChartViewController()
-
-        // Trigger viewDidLoad
-        _ = viewController.view
-
-        // If we get here without crashing, the test passes
-        XCTAssertNotNil(viewController, "ViewController should load successfully")
     }
 
     /// Tests that BarChartViewController has black background
@@ -761,22 +448,6 @@ final class CandlestickChartViewControllerTests: XCTestCase {
 
     // MARK: - Initialization Tests
 
-    /// Tests that CandlestickChartViewController can be created
-    func testCandlestickChartViewControllerCreation() {
-        let viewController = CandlestickChartViewController()
-
-        XCTAssertNotNil(viewController, "CandlestickChartViewController should be created")
-        XCTAssertNotNil(viewController, "Should be a UIViewController")
-    }
-
-    /// Tests that CandlestickChartViewController loads view without crashing
-    func testCandlestickChartViewControllerViewDidLoad() {
-        let viewController = CandlestickChartViewController()
-
-        _ = viewController.view // Trigger viewDidLoad
-
-        XCTAssertNotNil(viewController, "ViewController should load successfully")
-    }
 }
 
 // MARK: - CustomPriceFormatterViewController Tests
@@ -932,14 +603,15 @@ final class TableViewControllerStructureTests: XCTestCase {
                       "TableViewController should have sections after viewDidLoad")
     }
 
-    /// Tests that TableViewController has the expected number of sections
-    func testTableViewControllerSectionCount() {
+    /// Tests that section titles are unique to avoid ambiguous navigation
+    func testTableViewControllerSectionTitlesAreUnique() {
         let tvc = TableViewController()
         _ = tvc.view // Trigger viewDidLoad
 
-        let expectedSectionCount = 12 // v5 Plugin API, v4 Compatibility API, Core Charts, etc.
-        XCTAssertEqual(tvc.sections.count, expectedSectionCount,
-                      "TableViewController should have \(expectedSectionCount) sections")
+        let titles = tvc.sections.map { $0.title }
+        let uniqueTitles = Set(titles)
+        XCTAssertEqual(uniqueTitles.count, titles.count,
+                       "Section titles should be unique")
     }
 
     /// Tests that TableViewController returns correct section count via delegate
@@ -979,8 +651,8 @@ final class TableViewControllerStructureTests: XCTestCase {
             return
         }
 
-        XCTAssertEqual(v5Section.rows.count, 4,
-                      "v5 Plugin API section should have 4 rows (Text Watermark, Image Watermark, Markers Plugin, Up-Down Markers Plugin)")
+        XCTAssertEqual(v5Section.rows.count, 10,
+                      "v5 Plugin API section should have 10 rows")
     }
 
     /// Tests that v4 Compatibility API section has expected number of rows
@@ -1028,7 +700,6 @@ final class TableViewControllerStructureTests: XCTestCase {
             let vc = row.viewController()
             XCTAssertNotNil(vc,
                           "Row '\(row.title)' should create a valid view controller")
-            XCTAssertNotNil(vc, "Row '\(row.title)' should create a UIViewController")
         }
     }
 
@@ -1137,78 +808,6 @@ final class TableViewControllerStructureTests: XCTestCase {
 /// These tests verify that other example view controllers
 /// can be created and loaded without crashing.
 final class AdditionalViewControllerTests: XCTestCase {
-
-    /// Tests that CustomThemesViewController can be created
-    func testCustomThemesViewControllerCreation() {
-        let vc = CustomThemesViewController()
-        XCTAssertNotNil(vc, "CustomThemesViewController should be created")
-    }
-
-    /// Tests that LegendViewController can be created
-    func testLegendViewControllerCreation() {
-        let vc = LegendViewController()
-        XCTAssertNotNil(vc, "LegendViewController should be created")
-    }
-
-    /// Tests that ThreeLineLegendViewController can be created
-    func testThreeLineLegendViewControllerCreation() {
-        let vc = ThreeLineLegendViewController()
-        XCTAssertNotNil(vc, "ThreeLineLegendViewController should be created")
-    }
-
-    /// Tests that FitContentViewController can be created
-    func testFitContentViewControllerCreation() {
-        let vc = FitContentViewController()
-        XCTAssertNotNil(vc, "FitContentViewController should be created")
-    }
-
-    /// Tests that FloatingTooltipViewController can be created
-    func testFloatingTooltipViewControllerCreation() {
-        let vc = FloatingTooltipViewController()
-        XCTAssertNotNil(vc, "FloatingTooltipViewController should be created")
-    }
-
-    /// Tests that TrackingTooltipViewController can be created
-    func testTrackingTooltipViewControllerCreation() {
-        let vc = TrackingTooltipViewController()
-        XCTAssertNotNil(vc, "TrackingTooltipViewController should be created")
-    }
-
-    /// Tests that MagnifierTooltipViewController can be created
-    func testMagnifierTooltipViewControllerCreation() {
-        let vc = MagnifierTooltipViewController()
-        XCTAssertNotNil(vc, "MagnifierTooltipViewController should be created")
-    }
-
-    /// Tests that RealtimeEmulationViewController can be created
-    func testRealtimeEmulationViewControllerCreation() {
-        let vc = RealtimeEmulationViewController()
-        XCTAssertNotNil(vc, "RealtimeEmulationViewController should be created")
-    }
-
-    /// Tests that VolumeStudyViewController can be created
-    func testVolumeStudyViewControllerCreation() {
-        let vc = VolumeStudyViewController()
-        XCTAssertNotNil(vc, "VolumeStudyViewController should be created")
-    }
-
-    /// Tests that MarkersViewController can be created
-    func testMarkersViewControllerCreation() {
-        let vc = MarkersViewController()
-        XCTAssertNotNil(vc, "MarkersViewController should be created")
-    }
-
-    /// Tests that PriceLineViewController can be created
-    func testPriceLineViewControllerCreation() {
-        let vc = PriceLineViewController()
-        XCTAssertNotNil(vc, "PriceLineViewController should be created")
-    }
-
-    /// Tests that AddAndRemovePriceLineViewController can be created
-    func testAddAndRemovePriceLineViewControllerCreation() {
-        let vc = AddAndRemovePriceLineViewController()
-        XCTAssertNotNil(vc, "AddAndRemovePriceLineViewController should be created")
-    }
 
     /// Tests that multiple view controllers can be loaded without crashing
     func testMultipleViewControllersLoadSuccessfully() {

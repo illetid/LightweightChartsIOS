@@ -23,7 +23,7 @@ To run the example project, clone the repo, and run `pod install` from the Examp
 LightweightCharts is available through [CocoaPods](https://cocoapods.org). To install it, add the following line to your Podfile:
 
 ```ruby
-pod 'LightweightCharts', '~> 5.0.0'
+pod 'LightweightCharts', '~> 5.1.0'
 ```
 
 ### Swift Package Manager
@@ -32,7 +32,7 @@ LightweightCharts is also available through [Swift Package Manager](https://swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/tradingview/LightweightChartsIOS.git", from: "5.0.0")
+    .package(url: "https://github.com/tradingview/LightweightChartsIOS.git", from: "5.1.0")
 ]
 ```
 

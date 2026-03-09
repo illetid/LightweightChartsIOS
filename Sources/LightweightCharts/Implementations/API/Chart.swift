@@ -332,7 +332,15 @@ public func unsubscribeCrosshairMove() {
     }
 
 public func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, horizontalPosition: Time, seriesApi: T) {
-        let script = "\(jsName).setCrosshairPosition(\(price), \(horizontalPosition.jsonString), \(seriesApi.jsName));"
+        let script = """
+        if (typeof \(jsName).setCrosshairPosition === 'function') {
+            try {
+                \(jsName).setCrosshairPosition(\(price), \(horizontalPosition.jsonString), \(seriesApi.jsName));
+            } catch (e) {
+                console.warn('LWChart setCrosshairPosition failed:', e);
+            }
+        }
+        """
         _context.evaluateScript(script, completion: nil)
     }
 
@@ -350,8 +358,8 @@ public func paneSize(paneIndex: Int, completion: @escaping (Rectangle?) -> Void)
     
 public func priceScale(priceScaleId: String?) -> PriceScaleApi {
         let priceScale = PriceScale(context: context)
-        let priceScaleId = priceScaleId ?? ""
-        let script = "var \(priceScale.jsName) = \(jsName).priceScale(\(priceScaleId));"
+    let priceScaleId = priceScaleId ?? ""
+    let script = "window['\(priceScale.jsName)'] = \(jsName).priceScale(\(priceScaleId.jsonString()));"
         _context.evaluateScript(script) { _, _ in
         }
         return priceScale
@@ -405,22 +413,31 @@ public func takeScreenshot(addTopLayer: Bool?, includeCrosshair: Bool?, completi
             ? "\(jsName).takeScreenshot().toDataURL('\(imageFormat)', 1.0);"
             : "\(jsName).takeScreenshot(\(optionsParameter)).toDataURL('\(imageFormat)', 1.0);"
         _context.evaluateScript(script) { (result, error) in
+            // Extract String on main thread to avoid capturing bridged WebKit
+            // objects into background queue (causes ProcessThrottler crash).
+            let dataString: String?
+            if error == nil, let str = result as? String, !str.isEmpty {
+                dataString = str
+            } else {
+                dataString = nil
+            }
             DispatchQueue.global().async {
                 var image: UIImage?
-                if error == nil,
-                    let dataString = result as? String,
-                    !dataString.isEmpty {
+                if let dataString = dataString {
                     // format:
                     // data:[<mediatype>][;base64],<data>
                     // example
                     // (data:image/jpeg;base64,/9j/4AAQSkZJRgA
-                    let countToRemove = "data:\(imageFormat);base64,".count
-                    let index = dataString.index(dataString.startIndex, offsetBy: countToRemove)
-                    let base64String = String(dataString[index...])
-                    if let data = Data(base64Encoded: base64String) {
-                        if let screenshot = UIImage(data: data) {
-                            image = screenshot
-                        }
+                    let prefix = "data:\(imageFormat);base64,"
+                    let base64String: String?
+                    if let range = dataString.range(of: prefix) {
+                        base64String = String(dataString[range.upperBound...])
+                    } else {
+                        base64String = nil
+                    }
+                    if let base64String = base64String,
+                       let data = Data(base64Encoded: base64String) {
+                        image = UIImage(data: data)
                     }
                 }
                 completion(image)
@@ -542,6 +559,54 @@ final class Pane: PaneApi {
     func size(completion: @escaping (Rectangle?) -> Void) {
         let script = "\(chartJSName).paneSize(\(index));"
         context.decodedResult(forScript: script, completion: completion)
+    }
+
+    func getHeight(completion: @escaping (Double?) -> Void) {
+        let script = "\(chartJSName).panes()[\(index)].getHeight();"
+        context.evaluateScript(script) { result, _ in
+            completion(result as? Double)
+        }
+    }
+
+    func setHeight(height: Double) {
+        let script = "\(chartJSName).panes()[\(index)].setHeight(\(height));"
+        context.evaluateScript(script, completion: nil)
+    }
+
+    func moveTo(paneIndex: Int) {
+        let script = "\(chartJSName).panes()[\(index)].moveTo(\(paneIndex));"
+        context.evaluateScript(script, completion: nil)
+    }
+
+    func setPreserveEmptyPane(preserve: Bool) {
+        let script = "\(chartJSName).panes()[\(index)].setPreserveEmptyPane(\(preserve ? "true" : "false"));"
+        context.evaluateScript(script, completion: nil)
+    }
+
+    func preserveEmptyPane(completion: @escaping (Bool?) -> Void) {
+        let script = "\(chartJSName).panes()[\(index)].preserveEmptyPane();"
+        context.evaluateScript(script) { result, _ in
+            completion(result as? Bool)
+        }
+    }
+
+    func getStretchFactor(completion: @escaping (Double?) -> Void) {
+        let script = "\(chartJSName).panes()[\(index)].getStretchFactor();"
+        context.evaluateScript(script) { result, _ in
+            completion(result as? Double)
+        }
+    }
+
+    func setStretchFactor(stretchFactor: Double) {
+        let script = "\(chartJSName).panes()[\(index)].setStretchFactor(\(stretchFactor));"
+        context.evaluateScript(script, completion: nil)
+    }
+
+    func priceScale(priceScaleId: String) -> PriceScaleApi {
+        let priceScale = PriceScale(context: context)
+        let script = "window['\(priceScale.jsName)'] = \(chartJSName).panes()[\(index)].priceScale('\(priceScaleId)');"
+        context.evaluateScript(script, completion: nil)
+        return priceScale
     }
 
 }

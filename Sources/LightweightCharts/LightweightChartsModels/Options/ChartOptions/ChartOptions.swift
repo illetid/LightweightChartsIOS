@@ -92,6 +92,8 @@ public struct ChartOptions: Codable {
      Represent options for the tracking mode's behavior.
      */
     public var trackingMode: TrackingModeOptions?
+
+    public var addDefaultPane: Bool?
         
     public init(width: Double? = nil,
                 height: Double? = nil,
@@ -107,7 +109,8 @@ public struct ChartOptions: Codable {
                 handleScroll: HandleScrollOptions? = nil,
                 handleScale: TogglableOptions<HandleScaleOptions>? = nil,
                 kineticScroll: KineticScrollOptions? = nil,
-                trackingMode: TrackingModeOptions? = nil) {
+                trackingMode: TrackingModeOptions? = nil,
+                addDefaultPane: Bool? = nil) {
         self.width = width
         self.height = height
         self._watermark = watermark
@@ -124,10 +127,11 @@ public struct ChartOptions: Codable {
         self.handleScale = handleScale
         self.kineticScroll = kineticScroll
         self.trackingMode = trackingMode
+        self.addDefaultPane = addDefaultPane
     }
     
     enum CodingKeys: String, CodingKey {
-        case width, height, layout, leftPriceScale, rightPriceScale, overlayPriceScales, timeScale, crosshair, grid, localization, handleScroll, handleScale, kineticScroll, trackingMode
+        case width, height, layout, leftPriceScale, rightPriceScale, overlayPriceScales, timeScale, crosshair, grid, localization, handleScroll, handleScale, kineticScroll, trackingMode, addDefaultPane
         case _watermark = "watermark"
     }
     
@@ -152,6 +156,7 @@ extension ChartOptions {
         var handleScale: TogglableOptions<HandleScaleOptions>?
         var kineticScroll: KineticScrollOptions?
         var trackingMode: TrackingModeOptions?
+        var addDefaultPane: Bool?
 
         init(_ options: ChartOptions) {
             self.width = options.width
@@ -168,6 +173,7 @@ extension ChartOptions {
             self.handleScale = options.handleScale
             self.kineticScroll = options.kineticScroll
             self.trackingMode = options.trackingMode
+            self.addDefaultPane = options.addDefaultPane
         }
     }
 

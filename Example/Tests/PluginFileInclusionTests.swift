@@ -14,8 +14,28 @@ class PluginFileInclusionTests: XCTestCase {
 
     // MARK: - File Paths
 
+    private static let projectRootURL: URL = {
+        let fileManager = FileManager.default
+        var candidate = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+
+        for _ in 0..<10 {
+            let podspec = candidate.appendingPathComponent("LightweightCharts.podspec").path
+            let packageSwift = candidate.appendingPathComponent("Package.swift").path
+            let sources = candidate.appendingPathComponent("Sources/LightweightCharts").path
+
+            if fileManager.fileExists(atPath: podspec)
+                && fileManager.fileExists(atPath: packageSwift)
+                && fileManager.fileExists(atPath: sources) {
+                return candidate
+            }
+            candidate.deleteLastPathComponent()
+        }
+
+        return URL(fileURLWithPath: fileManager.currentDirectoryPath)
+    }()
+
     private var projectRoot: String {
-        return FileManager.default.currentDirectoryPath
+        return Self.projectRootURL.path
     }
 
     private var sourcesDir: String {

@@ -6,6 +6,55 @@ public protocol PaneApi: AnyObject {
 
     func size(completion: @escaping (Rectangle?) -> Void)
 
+    /**
+     * Returns the height of this pane in pixels.
+     * - Parameter completion: the pane height
+     */
+    func getHeight(completion: @escaping (Double?) -> Void)
+    
+    /**
+     * Sets the height of this pane in pixels.
+     * - Parameter height: the desired height
+     */
+    func setHeight(height: Double)
+    
+    /**
+     * Moves this pane to the specified index.
+     * - Parameter paneIndex: the target pane index
+     */
+    func moveTo(paneIndex: Int)
+    
+    /**
+     * Sets whether this pane should be preserved when it has no series.
+     * - Parameter preserve: true to keep the pane even when empty
+     */
+    func setPreserveEmptyPane(preserve: Bool)
+    
+    /**
+     * Returns whether this pane is preserved when it has no series.
+     * - Parameter completion: true if the pane is preserved when empty
+     */
+    func preserveEmptyPane(completion: @escaping (Bool?) -> Void)
+    
+    /**
+     * Returns the stretch factor of this pane.
+     * - Parameter completion: the stretch factor value
+     */
+    func getStretchFactor(completion: @escaping (Double?) -> Void)
+    
+    /**
+     * Sets the stretch factor of this pane.
+     * - Parameter stretchFactor: the desired stretch factor
+     */
+    func setStretchFactor(stretchFactor: Double)
+    
+    /**
+     * Returns the price scale API for the given price scale ID within this pane.
+     * - Parameter priceScaleId: the ID of the price scale
+     * - Returns: the price scale API
+     */
+    func priceScale(priceScaleId: String) -> PriceScaleApi
+
 }
 
  /**

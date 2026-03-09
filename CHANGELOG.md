@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-03-05
+
+### Added
+- **Series Marker Price Positioning**: New `atPriceTop`, `atPriceBottom`, `atPriceMiddle`
+  positions on `SeriesMarkerPosition` and `price` field on `SeriesMarker` for exact Y-axis
+  marker placement (upstream v5.0.4, PR #1826)
+- **Series Order Control**: `seriesOrder(completion:)` and `setSeriesOrder(order:)` on
+  `SeriesApi` to control rendering order of series within a pane (upstream v5.0.6, PR #1868)
+- **Price Scale Visible Range**: `setVisibleRange(from:to:)`, `getVisibleRange(completion:)`,
+  and `setAutoScale(on:)` on `PriceScaleApi` for programmatic price range control
+  (upstream v5.0.7, PR #1856)
+- **Series Markers `zOrder`**: `SeriesMarkerZOrder` enum (`top`, `aboveSeries`, `normal`) and
+  `zOrder` property on `SeriesMarkersOptions` (upstream v5.0.7, PR #1876)
+- **Pane API Enhancements**: `getHeight`, `setHeight`, `moveTo`, `setPreserveEmptyPane`,
+  `preserveEmptyPane`, `getStretchFactor`, `setStretchFactor`, `priceScale(priceScaleId:)`
+  on `PaneApi` (upstream v5.0.8, PR #1894)
+- **`addDefaultPane` chart option**: Control whether the chart creates an initial pane
+  (upstream v5.0.8, PR #1894)
+- **`pop(count:completion:)` on SeriesApi**: Remove data points from end of series
+  (upstream v5.0.9, PR #1949)
+- **`lastValueData(globalLast:completion:)` on SeriesApi**: Retrieve last value data
+  including price and color (upstream v5.0.9, PR #1956)
+- **Data Conflation**: `enableConflation`, `conflationThresholdFactor`,
+  `precomputeConflationOnInit`, `precomputeConflationPriority` on `TimeScaleOptions`
+  for performance optimization with large datasets (upstream v5.1.0, PR #1945)
+- **New Example VCs**: PricePositionedMarkers, SeriesOrder, PriceScaleRange,
+  DataConflation, PaneSizing
+
+### Changed
+- Bumped podspec version to 5.1.0
+
 ## [5.0.1] - 2026-03-03
 
 ### Added
