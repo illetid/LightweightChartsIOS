@@ -15,7 +15,7 @@ public protocol ChartDelegate: AnyObject {
 /// This class is the concrete implementation of the chart functionality.
 /// Most users should interact with charts through the `LightweightCharts` view
 /// or the `ChartApi` protocol.
-public class Chart: ChartObject {
+public class Chart: JavaScriptObject {
     
     enum SubscribeState: CaseIterable {
         case declared
@@ -32,7 +32,7 @@ public class Chart: ChartObject {
     /// The JavaScript evaluator context for this chart.
     internal unowned var _context: Context
 
-    /// The JavaScript evaluator context (satisfies ChartObject protocol)
+    /// The JavaScript evaluator context exposed by the concrete chart type.
     public var context: any JavaScriptEvaluator {
         return _context
     }

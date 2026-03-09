@@ -9,16 +9,12 @@ extension String {
     ///
     /// - Returns: A JSON-encoded string with quotes and proper escaping.
     func jsonString() -> String {
-        // Escape backslashes and quotes
-        let escaped = self
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-            .replacingOccurrences(of: "\n", with: "\\n")
-            .replacingOccurrences(of: "\r", with: "\\r")
-            .replacingOccurrences(of: "\t", with: "\\t")
+        guard let data = try? JSONEncoder().encode(self),
+              let jsonString = String(data: data, encoding: .utf8) else {
+            return "\"\""
+        }
 
-        // Wrap in quotes for JSON string representation
-        return "\"\(escaped)\""
+        return jsonString
     }
 
 }

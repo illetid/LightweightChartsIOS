@@ -79,8 +79,9 @@ class PluginFileInclusionTests: XCTestCase {
         "LightweightChartsModels/Options/Plugins/ImageWatermarkOptions.swift",
         "LightweightChartsModels/Options/Plugins/TextWatermarkOptions.swift",
 
-        // Plugin Extensions
-        "Implementations/API/ChartApi+Extension.swift",
+        // Plugin API surface
+        "Implementations/API/Chart.swift",
+        "Implementations/API/LightweightCharts.swift",
         "Implementations/API/Series/SeriesApi+Extension.swift",
     ]
 
@@ -336,15 +337,25 @@ class PluginFileInclusionTests: XCTestCase {
 
     /// Verifies that plugin API extensions exist
     func testPluginAPIExtensionsExist() {
-        // Chart extension for pane plugins
-        let chartExtensionPath = sourcesDir + "/Implementations/API/ChartApi+Extension.swift"
-        let chartExists = FileManager.default.fileExists(atPath: chartExtensionPath)
-        XCTAssertTrue(chartExists, "ChartApi+Extension.swift should exist")
+        let chartPath = sourcesDir + "/Implementations/API/Chart.swift"
+        let chartExists = FileManager.default.fileExists(atPath: chartPath)
+        XCTAssertTrue(chartExists, "Chart.swift should exist")
 
-        if chartExists, let content = try? String(contentsOfFile: chartExtensionPath, encoding: .utf8) {
+        if chartExists, let content = try? String(contentsOfFile: chartPath, encoding: .utf8) {
             XCTAssertTrue(content.contains("createTextWatermarkPlugin") ||
                         content.contains("createImageWatermarkPlugin"),
-                         "ChartApi+Extension should provide pane plugin creation methods")
+                         "Chart.swift should provide pane plugin creation methods")
+        }
+
+        let lightweightChartsPath = sourcesDir + "/Implementations/API/LightweightCharts.swift"
+        let lightweightChartsExists = FileManager.default.fileExists(atPath: lightweightChartsPath)
+        XCTAssertTrue(lightweightChartsExists, "LightweightCharts.swift should exist")
+
+        if lightweightChartsExists,
+           let content = try? String(contentsOfFile: lightweightChartsPath, encoding: .utf8) {
+            XCTAssertTrue(content.contains("createTextWatermarkPlugin") ||
+                        content.contains("createImageWatermarkPlugin"),
+                         "LightweightCharts.swift should forward pane plugin creation methods")
         }
 
         // Series extension for series plugins
