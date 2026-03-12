@@ -1,7 +1,7 @@
 import Foundation
 
 
-public enum SeriesType: String, Decodable, Sendable {
+public enum SeriesType: String, Codable, Sendable {
     case line = "Line"
     case area = "Area"
     case candlestick = "Candlestick"

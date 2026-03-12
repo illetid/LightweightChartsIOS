@@ -17,10 +17,12 @@ final class Tests: XCTestCase {
     final class MockBridge: JavaScriptEvaluator, JavaScriptMessageProducer, JavaScriptCallbackEvaluator {
         private(set) var submittedScripts: [String] = []
         private(set) var evaluatedScripts: [String] = []
+        private(set) var rawEvaluatedScripts: [String] = []
         private(set) var callbackEvaluatedScripts: [String] = []
         private(set) var messageHandlerNames: [String] = []
         var evaluateHandler: ((String, Any.Type) throws -> Any?)?
         var decodedResultHandler: ((String, Any.Type) throws -> Any?)?
+        var evaluateScriptHandler: ((String) throws -> Any?)?
 
         private func bridgeValue<T>(from value: Any?, as type: T.Type) throws -> T {
             if let typedValue = value as? T {
@@ -39,7 +41,12 @@ final class Tests: XCTestCase {
         }
 
         func evaluateScript(_ script: String) async throws(JavaScriptBridgeError) -> Any? {
-            throw JavaScriptBridgeError.contextUnavailable
+            rawEvaluatedScripts.append(script)
+            do {
+                return try evaluateScriptHandler?(script)
+            } catch {
+                throw JavaScriptBridgeError.wrap(error, script: script)
+            }
         }
 
         func evaluate<T: Decodable>(script: String, resultType: T.Type) async throws(JavaScriptBridgeError) -> T {
@@ -223,49 +230,81 @@ final class Tests: XCTestCase {
         XCTAssertTrue(bridge.submittedScripts[1].contains("\(series.jsName).update("))
     }
 
-    func testPaneMutationsSubmitInCallOrder() {
+    func testPaneMutationsSubmitInCallOrder() async throws {
         let bridge = MockBridge()
         let chart = Chart(context: bridge, closureStore: nil)
         let pane = Pane(index: 1, chartJSName: chart.jsName, context: bridge, closureStore: nil)
 
-        pane.setHeight(height: 240)
-        pane.moveTo(paneIndex: 0)
-        pane.setPreserveEmptyPane(preserve: true)
+        try await pane.setHeight(height: 240)
+        try await pane.moveTo(paneIndex: 0)
+        try await pane.setPreserveEmptyPane(preserve: true)
 
-        XCTAssertEqual(bridge.submittedScripts.count, 4)
+        XCTAssertEqual(bridge.submittedScripts.count, 1)
+        XCTAssertEqual(bridge.rawEvaluatedScripts.count, 3)
         let paneIdentifier = try! tryUnwrapCreatedIdentifier(in: bridge.submittedScripts[0], prefix: "pane")
         XCTAssertTrue(bridge.submittedScripts[0].contains("var panes = \(chart.jsName).panes();"))
         XCTAssertTrue(bridge.submittedScripts[0].contains("window['\(paneIdentifier)'] = panes[1];"))
-        XCTAssertTrue(bridge.submittedScripts[1].contains("window['\(paneIdentifier)'].setHeight(240.0);"))
-        XCTAssertTrue(bridge.submittedScripts[2].contains("window['\(paneIdentifier)'].moveTo(0);"))
-        XCTAssertTrue(bridge.submittedScripts[3].contains("window['\(paneIdentifier)'].setPreserveEmptyPane(true);"))
+        XCTAssertTrue(bridge.rawEvaluatedScripts[0].contains("window['\(paneIdentifier)'].setHeight(240.0);"))
+        XCTAssertTrue(bridge.rawEvaluatedScripts[1].contains("window['\(paneIdentifier)'].moveTo(0);"))
+        XCTAssertTrue(bridge.rawEvaluatedScripts[2].contains("window['\(paneIdentifier)'].setPreserveEmptyPane(true);"))
     }
 
-    func testChartMutationFamiliesSubmitInCallOrder() {
+    func testChartMutationFamiliesSubmitInCallOrder() async throws {
         let bridge = MockBridge()
         let chart = Chart(context: bridge, closureStore: nil)
         let series = LineSeries(context: bridge, closureStore: nil)
 
+        bridge.evaluateScriptHandler = { _ in nil }
+        bridge.evaluateHandler = { script, resultType in
+            if resultType == Int.self, script.contains(".paneIndex();") {
+                return 1
+            }
+            return nil
+        }
+
         chart.applyOptions(options: ChartOptions(width: 320, height: 180))
         chart.resize(width: 640, height: 360, forceRepaint: true)
-        let addedPane = chart.addPane()
-        chart.removePane(index: 1)
-        chart.swapPanes(first: 0, second: 1)
-        chart.setCrosshairPosition(price: 101.5, horizontalPosition: .utc(timestamp: 7), seriesApi: series)
+        let addedPane = try await chart.addPane()
+        try await chart.removePane(index: 1)
+        try await chart.swapPanes(first: 0, second: 1)
+        try await chart.setCrosshairPosition(price: 101.5, horizontalPosition: .utc(timestamp: 7), seriesApi: series)
         chart.clearCrosshairPosition()
 
-        XCTAssertEqual(bridge.submittedScripts.count, 7)
+        XCTAssertEqual(bridge.submittedScripts.count, 3)
+        XCTAssertEqual(bridge.rawEvaluatedScripts.count, 4)
         XCTAssertTrue(bridge.submittedScripts[0].contains("\"width\":320"))
         XCTAssertTrue(bridge.submittedScripts[0].contains("\(chart.jsName).applyOptions(options);"))
         XCTAssertTrue(bridge.submittedScripts[1].contains("\(chart.jsName).resize(640.0, 360.0, true);"))
-        let addedPaneIdentifier = try! tryUnwrapCreatedIdentifier(in: bridge.submittedScripts[2], prefix: "pane")
-        XCTAssertTrue(bridge.submittedScripts[2].contains("window['\(addedPaneIdentifier)'] = \(chart.jsName).addPane();"))
-        XCTAssertTrue(bridge.submittedScripts[3].contains("\(chart.jsName).removePane(1);"))
-        XCTAssertTrue(bridge.submittedScripts[4].contains("\(chart.jsName).swapPanes(0, 1);"))
-        XCTAssertTrue(bridge.submittedScripts[5].contains("\(chart.jsName).setCrosshairPosition(101.5,"))
-        XCTAssertTrue(bridge.submittedScripts[5].contains(series.jsName))
-        XCTAssertTrue(bridge.submittedScripts[6].contains("\(chart.jsName).clearCrosshairPosition();"))
+        let addedPaneIdentifier = try! tryUnwrapCreatedIdentifier(in: bridge.rawEvaluatedScripts[0], prefix: "pane")
+        XCTAssertTrue(bridge.rawEvaluatedScripts[0].contains("window['\(addedPaneIdentifier)'] = \(chart.jsName).addPane();"))
+        XCTAssertTrue(bridge.rawEvaluatedScripts[1].contains("\(chart.jsName).removePane(1);"))
+        XCTAssertTrue(bridge.rawEvaluatedScripts[2].contains("\(chart.jsName).swapPanes(0, 1);"))
+        XCTAssertTrue(bridge.rawEvaluatedScripts[3].contains("\(chart.jsName).setCrosshairPosition(101.5,"))
+        XCTAssertTrue(bridge.rawEvaluatedScripts[3].contains(series.jsName))
+        XCTAssertTrue(bridge.submittedScripts[2].contains("\(chart.jsName).clearCrosshairPosition();"))
         XCTAssertTrue((addedPane as! Pane).jsName == addedPaneIdentifier)
+    }
+
+    func testSetCrosshairPositionSurfacesBridgeFailures() async {
+        let bridge = MockBridge()
+        let chart = Chart(context: bridge, closureStore: nil)
+        let series = LineSeries(context: bridge, closureStore: nil)
+
+        bridge.evaluateScriptHandler = { script in
+            throw JavaScriptBridgeError.evaluationFailed(script: script, message: "boom")
+        }
+
+        do {
+            try await chart.setCrosshairPosition(price: 101.5, horizontalPosition: .utc(timestamp: 7), seriesApi: series)
+            XCTFail("Expected setCrosshairPosition to throw")
+        } catch let error {
+            guard case let .evaluationFailed(script, message) = error else {
+                XCTFail("Expected evaluationFailed, got \(error)")
+                return
+            }
+            XCTAssertTrue(script.contains("setCrosshairPosition"))
+            XCTAssertEqual(message, "boom")
+        }
     }
 
     func testSeriesMutationFamiliesSubmitInCallOrder() {
@@ -332,7 +371,19 @@ final class Tests: XCTestCase {
         XCTAssertEqual(bridge.submittedScripts.count, 1)
         let identifier = try tryUnwrapCreatedIdentifier(in: bridge.submittedScripts[0], prefix: "priceFormatter")
         XCTAssertTrue(bridge.submittedScripts[0].contains(".priceFormatter();"))
-        XCTAssertEqual(bridge.evaluatedScripts, ["\(identifier).format(42.0);"])
+        XCTAssertEqual(bridge.evaluatedScripts, ["\(identifier).format(42);"])
+    }
+
+    func testSeriesPriceFormatterSerializesNonFiniteValuesAsNull() async throws {
+        let bridge = MockBridge()
+        let series = LineSeries(context: bridge, closureStore: nil)
+        let formatter = series.priceFormatter()
+        bridge.evaluateHandler = { _, _ in "n/a" }
+
+        _ = try await formatter.format(price: .nan)
+
+        let identifier = try tryUnwrapCreatedIdentifier(in: bridge.submittedScripts[0], prefix: "priceFormatter")
+        XCTAssertEqual(bridge.evaluatedScripts, ["\(identifier).format(null);"])
     }
 
     func testSeriesPriceScaleIsUsableImmediatelyAfterFactoryReturns() {
@@ -444,6 +495,48 @@ final class Tests: XCTestCase {
         XCTAssertTrue(bridge.submittedScripts[1].contains("\(plugin.jsName).clearMarkers();"))
     }
 
+    func testUpDownMarkersPluginUpdateSurfacesBridgeFailures() async {
+        let bridge = MockBridge()
+        let series = LineSeries(context: bridge, closureStore: nil)
+        let plugin = series.createUpDownMarkersPlugin(options: UpDownMarkersOptions())
+
+        bridge.evaluateScriptHandler = { script in
+            throw JavaScriptBridgeError.evaluationFailed(script: script, message: "update failed")
+        }
+
+        do {
+            try await plugin.update(LineData(time: .utc(timestamp: 1), value: 10))
+            XCTFail("Expected plugin update to throw")
+        } catch let error {
+            guard case let .evaluationFailed(script, message) = error else {
+                XCTFail("Expected evaluationFailed, got \(error)")
+                return
+            }
+            XCTAssertTrue(script.contains("\(plugin.jsName).update("))
+            XCTAssertEqual(message, "update failed")
+        }
+    }
+
+    func testUpDownMarkersPluginUpdateThrowsWhenDetached() async {
+        let bridge = MockBridge()
+        let series = LineSeries(context: bridge, closureStore: nil)
+        let plugin = series.createUpDownMarkersPlugin(options: UpDownMarkersOptions())
+        plugin.detach()
+
+        do {
+            try await plugin.update(SeriesUpDownMarker(time: .utc(timestamp: 1), value: 10, sign: .positive))
+            XCTFail("Expected detached plugin update to throw")
+        } catch let error {
+            guard case let .evaluationFailed(script, message) = error else {
+                XCTFail("Expected evaluationFailed, got \(error)")
+                return
+            }
+            XCTAssertTrue(script.contains("\(plugin.jsName).update"))
+            XCTAssertEqual(message, "Plugin has been detached.")
+        }
+    }
+
+    @available(*, deprecated, message: "Exercises deprecated callback bridge coverage.")
     func testSeriesMarkersPluginReadsViaCallbackBridge() {
         let bridge = MockBridge()
         let series = LineSeries(context: bridge, closureStore: nil)
@@ -717,8 +810,7 @@ final class Tests: XCTestCase {
 
         bridge.decodedResultHandler = { script, _ in
             switch script {
-            case let script where script.contains("return \(chart.jsName).paneSize(paneIndex);"):
-                XCTAssertTrue(script.contains("pane === window['\(paneIdentifier)']"))
+            case "\(chart.jsName).paneSize(1);":
                 return Rectangle(width: 320, height: 180)
             default:
                 throw JavaScriptBridgeError.evaluationFailed(script: script, message: "Unexpected decoded script")
@@ -726,6 +818,8 @@ final class Tests: XCTestCase {
         }
         bridge.evaluateHandler = { script, resultType in
             switch script {
+            case "window['\(paneIdentifier)'].paneIndex();":
+                return 1
             case "window['\(paneIdentifier)'].getHeight();":
                 return 180.0
             case "window['\(paneIdentifier)'].preserveEmptyPane();":
@@ -749,21 +843,20 @@ final class Tests: XCTestCase {
         XCTAssertEqual(stretchFactor, 2)
     }
 
-    func testPaneCurrentIndexTracksLivePositionWhileIndexRemainsSnapshot() async throws {
+    func testPaneLivePaneIndexTracksCurrentPosition() async throws {
         let bridge = MockBridge()
         let chart = Chart(context: bridge, closureStore: nil)
         let pane = Pane(index: 1, chartJSName: chart.jsName, context: bridge, closureStore: nil)
         let paneIdentifier = try! tryUnwrapCreatedIdentifier(in: bridge.submittedScripts[0], prefix: "pane")
 
         bridge.evaluateHandler = { script, _ in
-            XCTAssertTrue(script.contains("pane === window['\(paneIdentifier)']"))
+            XCTAssertEqual(script, "window['\(paneIdentifier)'].paneIndex();")
             return 0
         }
 
-        let currentIndex = try await pane.currentIndex()
+        let paneIndex = try await pane.paneIndex()
 
-        XCTAssertEqual(pane.index, 1)
-        XCTAssertEqual(currentIndex, 0)
+        XCTAssertEqual(paneIndex, 0)
     }
 
     func testPanePluginUsesStablePaneHandleForRecreationAndCurrentIndex() async throws {
@@ -778,17 +871,16 @@ final class Tests: XCTestCase {
 
         plugin.updateImage(url: "https://example.com/updated.png")
 
-        XCTAssertEqual(plugin.paneIndex, 0)
         XCTAssertTrue(bridge.submittedScripts[1].contains("var pane = window['\(paneIdentifier)'];"))
         XCTAssertTrue(bridge.submittedScripts[3].contains("var pane = window['\(paneIdentifier)'];"))
         XCTAssertFalse(bridge.submittedScripts[3].contains(".panes()[0]"))
 
         bridge.evaluateHandler = { script, _ in
-            XCTAssertTrue(script.contains("pane === window['\(paneIdentifier)']"))
+            XCTAssertEqual(script, "window['\(paneIdentifier)'].paneIndex()")
             return 1
         }
 
-        let currentPaneIndex = try await plugin.currentPaneIndex()
+        let currentPaneIndex = try await plugin.paneIndex()
 
         XCTAssertEqual(currentPaneIndex, 1)
     }
@@ -944,6 +1036,50 @@ final class Tests: XCTestCase {
         XCTAssertEqual(whenReadyCount, whenReadyCountAfterRemoval)
     }
 
+    func testWhenReadyAndOnLoadErrorReportRegistrationFailureForTerminalStates() async {
+        let charts = LightweightCharts(options: ChartOptions(), bootstrapMode: .deferred)
+        var readyCalls = 0
+        var errorCalls = 0
+
+        charts.remove()
+
+        XCTAssertFalse(charts.whenReady { _ in readyCalls += 1 })
+        XCTAssertFalse(charts.onLoadError { _, _ in errorCalls += 1 })
+        XCTAssertEqual(readyCalls, 0)
+        XCTAssertEqual(errorCalls, 0)
+    }
+
+    func testOnLoadErrorImmediatelyFiresAfterBootstrapFailureWithScriptContext() async {
+        let charts = LightweightCharts(options: ChartOptions(), bootstrapMode: .deferred)
+        let loadErrorExpectation = expectation(description: "load error")
+        var capturedError: JavaScriptBridgeError?
+
+        func forcedBootstrapFailure(_: String) async throws(JavaScriptBridgeError) -> Any? {
+            throw JavaScriptBridgeError.evaluationFailed(script: "forced", message: "forced")
+        }
+        charts.bootstrapScriptEvaluatorOverride = forcedBootstrapFailure
+        charts.onLoadError { _, error in
+            capturedError = error as? JavaScriptBridgeError
+            loadErrorExpectation.fulfill()
+        }
+
+        charts.startBootstrapIfNeeded()
+        await fulfillment(of: [loadErrorExpectation], timeout: 1.0)
+
+        switch capturedError {
+        case let .evaluationFailed(script, message):
+            XCTAssertEqual(script, "<bootstrap:content-setup>")
+            XCTAssertTrue(message.contains("forced"))
+        default:
+            XCTFail("Expected bootstrap evaluationFailed error with script context")
+        }
+
+        var readyCalls = 0
+        XCTAssertFalse(charts.whenReady { _ in readyCalls += 1 })
+        XCTAssertEqual(readyCalls, 0)
+        XCTAssertTrue(charts.onLoadError { _, _ in })
+    }
+
     func testSeriesMarkersReturnsEmptyArrayWithoutPlugin() async throws {
         let bridge = MockBridge()
         let series = LineSeries(context: bridge, closureStore: nil)
@@ -1002,16 +1138,28 @@ final class Tests: XCTestCase {
         XCTAssertNil(time)
     }
 
-    func testChartAddPaneSupportsPreserveFlagAndReturnsPaneHandle() {
+    func testChartAddPaneSupportsPreserveFlagAndReturnsPaneHandle() async throws {
         let bridge = MockBridge()
         let chart = Chart(context: bridge, closureStore: nil)
+        var paneIndexEvaluationScript: String?
 
-        let pane = chart.addPane(preserveEmptyPane: true)
+        bridge.evaluateHandler = { script, resultType in
+            if resultType == Int.self, script.contains(".paneIndex();") {
+                paneIndexEvaluationScript = script
+                return 2
+            }
+            return nil
+        }
 
-        XCTAssertEqual(bridge.submittedScripts.count, 1)
-        let paneIdentifier = try! tryUnwrapCreatedIdentifier(in: bridge.submittedScripts[0], prefix: "pane")
-        XCTAssertTrue(bridge.submittedScripts[0].contains("window['\(paneIdentifier)'] = \(chart.jsName).addPane(true);"))
+        let pane = try await chart.addPane(preserveEmptyPane: true)
+
+        XCTAssertEqual(bridge.rawEvaluatedScripts.count, 1)
+        let paneIdentifier = try! tryUnwrapCreatedIdentifier(in: bridge.rawEvaluatedScripts[0], prefix: "pane")
+        XCTAssertTrue(bridge.rawEvaluatedScripts[0].contains("window['\(paneIdentifier)'] = \(chart.jsName).addPane(true);"))
+        XCTAssertEqual(paneIndexEvaluationScript, "window['\(paneIdentifier)'].paneIndex();")
         XCTAssertEqual((pane as! Pane).jsName, paneIdentifier)
+        let livePaneIndex = try await pane.paneIndex()
+        XCTAssertEqual(livePaneIndex, 2)
     }
 
     func testChartPriceScaleSupportsPaneIndex() {
@@ -1068,11 +1216,11 @@ final class Tests: XCTestCase {
         let series = chart.addLineSeries(options: nil)
 
         series.update(bar: LineData(time: .utc(timestamp: 4), value: 13), historicalUpdate: true)
-        series.moveToPane(paneIndex: 2)
+        try await series.moveToPane(paneIndex: 2)
 
         XCTAssertTrue(bridge.submittedScripts[1].contains("\(series.jsName).update("))
         XCTAssertTrue(bridge.submittedScripts[1].contains(", true);"))
-        XCTAssertTrue(bridge.submittedScripts[2].contains("\(series.jsName).moveToPane(2);"))
+        XCTAssertTrue(bridge.rawEvaluatedScripts.contains("\(series.jsName).moveToPane(2);"))
 
         bridge.decodedResultHandler = { script, _ in
             if script == "\(series.jsName).data();" {
@@ -1084,7 +1232,7 @@ final class Tests: XCTestCase {
             throw JavaScriptBridgeError.evaluationFailed(script: script, message: "Unexpected decoded script")
         }
         bridge.evaluateHandler = { script, _ in
-            if script == "\(series.jsName).getPane().paneIndex();" {
+            if script == "\(series.jsName).getPane().paneIndex();" || script.contains(".paneIndex();") {
                 return 1
             }
             throw JavaScriptBridgeError.evaluationFailed(script: script, message: "Unexpected evaluate script")
@@ -1092,10 +1240,68 @@ final class Tests: XCTestCase {
 
         let data = try await series.data()
         let pane = try await series.getPane()
+        let paneIndex = try await pane.paneIndex()
 
         XCTAssertEqual(data.count, 2)
         XCTAssertEqual(data[0].value, 11)
-        XCTAssertEqual(pane.index, 1)
+        XCTAssertEqual(paneIndex, 1)
+    }
+
+    func testBarsInLogicalRangeReturnsNilWhenBridgeReturnsNil() async throws {
+        let bridge = MockBridge()
+        let chart = Chart(context: bridge, closureStore: nil)
+        let series = chart.addLineSeries(options: nil)
+
+        bridge.decodedResultHandler = { script, _ in
+            XCTAssertTrue(script.hasPrefix("\(series.jsName).barsInLogicalRange("))
+            XCTAssertTrue(script.contains("\"from\":1"))
+            XCTAssertTrue(script.contains("\"to\":5"))
+            return nil
+        }
+
+        let result = try await series.barsInLogicalRange(range: FromToRange(from: 1, to: 5))
+
+        XCTAssertNil(result)
+    }
+
+    func testBarsInLogicalRangeAcceptsNilRange() async throws {
+        let bridge = MockBridge()
+        let chart = Chart(context: bridge, closureStore: nil)
+        let series = chart.addLineSeries(options: nil)
+
+        bridge.decodedResultHandler = { script, _ in
+            XCTAssertEqual(script, "\(series.jsName).barsInLogicalRange(null);")
+            return nil
+        }
+
+        let result = try await series.barsInLogicalRange(range: nil)
+
+        XCTAssertNil(result)
+    }
+
+    func testBarsInLogicalRangeReturnsBarsInfoWhenBridgeReturnsValue() async throws {
+        let bridge = MockBridge()
+        let chart = Chart(context: bridge, closureStore: nil)
+        let series = chart.addLineSeries(options: nil)
+
+        bridge.decodedResultHandler = { script, _ in
+            XCTAssertTrue(script.hasPrefix("\(series.jsName).barsInLogicalRange("))
+            XCTAssertTrue(script.contains("\"from\":2"))
+            XCTAssertTrue(script.contains("\"to\":8"))
+            return BarsInfo(
+                from: .utc(timestamp: 2),
+                to: .utc(timestamp: 8),
+                barsBefore: 10,
+                barsAfter: 3
+            )
+        }
+
+        let result = try await series.barsInLogicalRange(range: FromToRange(from: 2, to: 8))
+
+        XCTAssertEqual(result?.from, .utc(timestamp: 2))
+        XCTAssertEqual(result?.to, .utc(timestamp: 8))
+        XCTAssertEqual(result?.barsBefore, 10)
+        XCTAssertEqual(result?.barsAfter, 3)
     }
 
     func testSeriesDataChangedEventsStreamSubscribesAndYields() async {
@@ -1117,6 +1323,72 @@ final class Tests: XCTestCase {
         let options = TimeScaleOptions(maxBarSpacing: 48)
 
         XCTAssertTrue(options.jsonString.contains("\"maxBarSpacing\":48"))
+    }
+
+    func testEncodableJSONStringReturnsNullWhenEncodingFails() {
+        struct FailingEncodable: Encodable {
+            enum EncodeError: Error {
+                case forcedFailure
+            }
+
+            func encode(to encoder: Encoder) throws {
+                throw EncodeError.forcedFailure
+            }
+        }
+
+        XCTAssertEqual(FailingEncodable().jsonString, "null")
+    }
+
+    func testOverlayPriceScaleOptionsEncodeSupportedFieldsOnly() {
+        let options = OverlayPriceScaleOptions(
+            mode: .percentage,
+            invertScale: true,
+            ticksVisible: true,
+            minimumWidth: 52
+        )
+
+        XCTAssertTrue(options.jsonString.contains("\"mode\":2"))
+        XCTAssertTrue(options.jsonString.contains("\"invertScale\":true"))
+        XCTAssertTrue(options.jsonString.contains("\"ticksVisible\":true"))
+        XCTAssertTrue(options.jsonString.contains("\"minimumWidth\":52"))
+        XCTAssertFalse(options.jsonString.contains("\"autoScale\""))
+        XCTAssertFalse(options.jsonString.contains("\"visible\""))
+    }
+
+    func testSeriesTypeSupportsEncodingAndDecoding() throws {
+        let encoded = try JSONEncoder().encode(SeriesType.histogram)
+        let encodedString = String(data: encoded, encoding: .utf8)
+
+        XCTAssertEqual(encodedString, "\"Histogram\"")
+        XCTAssertEqual(try JSONDecoder().decode(SeriesType.self, from: encoded), .histogram)
+    }
+
+    func testRectangleSupportsEncodingAndDecoding() throws {
+        let rectangle = Rectangle(width: 320, height: 180)
+        let encoded = try JSONEncoder().encode(rectangle)
+        let encodedString = try XCTUnwrap(String(data: encoded, encoding: .utf8))
+
+        XCTAssertTrue(encodedString.contains("\"width\":320"))
+        XCTAssertTrue(encodedString.contains("\"height\":180"))
+
+        let decoded = try JSONDecoder().decode(Rectangle.self, from: encoded)
+        XCTAssertEqual(decoded.width, 320)
+        XCTAssertEqual(decoded.height, 180)
+    }
+
+    func testCrosshairAndKineticScrollOptionsExposeConfigurableProperties() {
+        var crosshairLine = CrosshairLineOptions()
+        crosshairLine.visible = true
+        crosshairLine.labelVisible = false
+
+        var kineticScroll = KineticScrollOptions()
+        kineticScroll.touch = true
+        kineticScroll.mouse = false
+
+        XCTAssertTrue(crosshairLine.visible == true)
+        XCTAssertTrue(crosshairLine.labelVisible == false)
+        XCTAssertTrue(kineticScroll.touch == true)
+        XCTAssertTrue(kineticScroll.mouse == false)
     }
 
     func testAreaAndBaselineOptionsEncodeRelativeGradient() {
@@ -1190,7 +1462,7 @@ final class Tests: XCTestCase {
         let delegate = ChartDelegateSpy()
         let handler = MessageHandler()
         let payload = """
-        {"time":1,"logical":2,"point":{"x":3,"y":4},"hoveredObjectId":5,"hoveredSeries":"line"}
+        {"time":1,"logical":2.5,"point":{"x":3,"y":4},"paneIndex":1,"hoveredObjectId":{"type":"marker","id":5},"hoveredSeries":"line"}
         """
 
         chart.delegate = delegate
@@ -1198,9 +1470,11 @@ final class Tests: XCTestCase {
         handler.handleMessage(name: "\(Subscription.click.rawValue)_\(chart.jsName)", bodyJSONString: payload)
 
         XCTAssertTrue(delegate.deliveredOnMainThread)
-        XCTAssertEqual(delegate.clickParameters?.logical, 2)
+        XCTAssertEqual(delegate.clickParameters?.logical, 2.5)
+        XCTAssertEqual(delegate.clickParameters?.paneIndex, 1)
         XCTAssertEqual(delegate.clickParameters?.point?.x, 3)
         XCTAssertEqual(delegate.clickParameters?.time, .utc(timestamp: 1))
+        XCTAssertEqual(delegate.clickParameters?.hoveredObjectId, .object(["type": .string("marker"), "id": .int(5)]))
     }
 
     func testChartClickEventsStreamSubscribesAndYieldsWithoutManualSubscribe() async {
@@ -1210,9 +1484,10 @@ final class Tests: XCTestCase {
         var iterator = stream.makeAsyncIterator()
         let parameters = MouseEventParams(
             time: .utc(timestamp: 1),
-            logical: 2,
+            logical: 2.5,
             point: Point(x: 3, y: 4),
-            hoveredObjectId: 5,
+            paneIndex: 0,
+            hoveredObjectId: .string("marker-1"),
             sourceEvent: nil,
             hoveredSeries: "line"
         )
@@ -1223,8 +1498,61 @@ final class Tests: XCTestCase {
         chart.messageHandler(MessageHandler(), didReceiveClickWithParameters: parameters)
         let received = await iterator.next()
 
-        XCTAssertEqual(received?.logical, 2)
+        XCTAssertEqual(received?.logical, 2.5)
         XCTAssertEqual(received?.point?.x, 3)
+        XCTAssertEqual(received?.paneIndex, 0)
+        XCTAssertEqual(received?.hoveredObjectId, .string("marker-1"))
+    }
+
+    func testMouseEventParamsDecodesNormalizedSeriesDataWithoutLosingTimeOrIdentity() throws {
+        let bridge = MockBridge()
+        let series = LineSeries(context: bridge, closureStore: nil)
+        let payload = """
+        {
+          "time": 10,
+          "logical": 4.25,
+          "hoveredSeries": "\(series.jsName)",
+          "hoveredObjectId": ["marker", 7],
+          "seriesData": {
+            "\(series.jsName)": {
+              "time": 10,
+              "value": 42.5,
+              "lineColor": "rgba(255, 0, 0, 1)"
+            }
+          }
+        }
+        """
+
+        let parameters = try JSONDecoder().decode(MouseEventParams.self, from: Data(payload.utf8))
+        let data = try XCTUnwrap(parameters.data(forSeries: series))
+
+        XCTAssertEqual(parameters.logical, 4.25)
+        XCTAssertTrue(parameters.isHovered(series: series))
+        XCTAssertEqual(parameters.hoveredObjectId, .array([.string("marker"), .int(7)]))
+        XCTAssertEqual(data.kind, .singleValue)
+        XCTAssertEqual(data.time, .utc(timestamp: 10))
+        XCTAssertEqual(data.value, 42.5)
+        XCTAssertEqual(data.objectValue?["lineColor"], .string("rgba(255, 0, 0, 1)"))
+    }
+
+    func testMouseEventParamsDecodesWhitespaceSeriesData() throws {
+        let bridge = MockBridge()
+        let series = HistogramSeries(context: bridge, closureStore: nil)
+        let payload = """
+        {
+          "seriesData": {
+            "\(series.jsName)": {
+              "time": { "year": 2026, "month": 3, "day": 12 }
+            }
+          }
+        }
+        """
+
+        let parameters = try JSONDecoder().decode(MouseEventParams.self, from: Data(payload.utf8))
+        let data = try XCTUnwrap(parameters.data(forSeries: series))
+
+        XCTAssertEqual(data.kind, .whitespace)
+        XCTAssertEqual(data.time, .businessDay(BusinessDay(year: 2026, month: 3, day: 12)))
     }
 
     func testMessageHandlerRoutesTimeScaleDelegateCallbacksOnMainActor() {

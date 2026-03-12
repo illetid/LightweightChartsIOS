@@ -314,7 +314,7 @@ class CustomThemesViewController: UIViewController {
         if let watermark = watermark {
             watermark.applyOptions(options: theme.watermarkOptions)
         } else {
-            watermark = chart.createTextWatermarkPlugin(paneIndex: 0, options: theme.watermarkOptions)
+            watermark = try? chart.createTextWatermarkPlugin(paneIndex: 0, options: theme.watermarkOptions)
         }
     }
     

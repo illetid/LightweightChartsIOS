@@ -433,9 +433,10 @@ class ThreeLineLegendViewController: UIViewController {
 
     private func handleCrosshairMove(_ parameters: MouseEventParams) {
         if case let .businessDayString(date) = parameters.time,
-            case let .lineData(price) = parameters.price(forSeries: series) {
+            let price = parameters.data(forSeries: series),
+            let value = price.value {
 
-            legendLabel.text = "\(legend)\n\((price.value! * 100).rounded() / 100)\n\(date)"
+            legendLabel.text = "\(legend)\n\((value * 100).rounded() / 100)\n\(date)"
         } else {
             setLastBarText()
         }

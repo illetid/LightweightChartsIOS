@@ -4,6 +4,7 @@ import WebKit
 protocol ClosuresStore: AnyObject {
         
     func addMethod<Input, Output>(_ method: JavaScriptMethod<Input, Output>, forName name: String)
+    func removeAllMethods()
     
 }
 
@@ -21,6 +22,10 @@ class PromptHandler: NSObject, ClosuresStore {
         case .javaScript:
             break
         }
+    }
+
+    func removeAllMethods() {
+        closures.removeAll()
     }
     
 }

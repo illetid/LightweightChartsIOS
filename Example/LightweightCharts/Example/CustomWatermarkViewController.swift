@@ -255,7 +255,7 @@ extension CustomWatermarkViewController: LightweightChartsDelegate {
             color: "rgba(171, 71, 188, 0.5)",
             fontSize: 24
         )
-        watermark = chart.createTextWatermarkPlugin(paneIndex: 0, options: watermarkOptions)
+        watermark = try? chart.createTextWatermarkPlugin(paneIndex: 0, options: watermarkOptions)
         scheduleWatermarkUpdates()
     }
 

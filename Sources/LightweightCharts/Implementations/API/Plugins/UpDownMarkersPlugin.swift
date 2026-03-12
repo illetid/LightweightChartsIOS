@@ -127,22 +127,22 @@ where Series: UpDownMarkersSupported {
     /// - Parameters:
     ///   - bar: The series data point to update.
     ///   - isUpdate: Optional parameter passed to the series update method.
-    public func update<T: SingleValueSeriesData>(_ bar: T, isUpdate: Bool? = nil) {
-        guard !isDetached, series != nil else { return }
+    public func update<T: SingleValueSeriesData>(_ bar: T, isUpdate: Bool? = nil) async throws(JavaScriptBridgeError) {
+        guard !isDetached, series != nil else {
+            throw JavaScriptBridgeError.evaluationFailed(script: "\(jsName).update(...)", message: "Plugin has been detached.")
+        }
 
         let isUpdateJson = isUpdate.map { ", \($0 ? "true" : "false")" } ?? ""
         let script = """
-        try {
-            if (typeof \(jsName).update === 'function') {
-                \(jsName).update(\(bar.jsonString)\(isUpdateJson));
-            } else if (typeof \(jsName).setData === 'function') {
-                \(jsName).setData([\(bar.jsonString)]);
-            }
-        } catch (e) {
-            console.warn('UpDownMarkersPlugin.update(data) failed:', e);
+        if (typeof \(jsName).update === 'function') {
+            \(jsName).update(\(bar.jsonString)\(isUpdateJson));
+        } else if (typeof \(jsName).setData === 'function') {
+            \(jsName).setData([\(bar.jsonString)]);
+        } else {
+            throw new Error('UpDownMarkersPlugin does not support update(data).');
         }
         """
-        evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
     /// Updates the plugin with a single marker.
@@ -151,21 +151,21 @@ where Series: UpDownMarkersSupported {
     /// will still recalculate the up-down sign based on the value change.
     ///
     /// - Parameter marker: The marker to update.
-    public func update(_ marker: SeriesUpDownMarker) {
-        guard !isDetached, series != nil else { return }
+    public func update(_ marker: SeriesUpDownMarker) async throws(JavaScriptBridgeError) {
+        guard !isDetached, series != nil else {
+            throw JavaScriptBridgeError.evaluationFailed(script: "\(jsName).update(...)", message: "Plugin has been detached.")
+        }
 
         let script = """
-        try {
-            if (typeof \(jsName).update === 'function') {
-                \(jsName).update(\(marker.jsonString));
-            } else if (typeof \(jsName).setMarkers === 'function') {
-                \(jsName).setMarkers([\(marker.jsonString)]);
-            }
-        } catch (e) {
-            console.warn('UpDownMarkersPlugin.update(marker) failed:', e);
+        if (typeof \(jsName).update === 'function') {
+            \(jsName).update(\(marker.jsonString));
+        } else if (typeof \(jsName).setMarkers === 'function') {
+            \(jsName).setMarkers([\(marker.jsonString)]);
+        } else {
+            throw new Error('UpDownMarkersPlugin does not support update(marker).');
         }
         """
-        evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
     /// Clears all markers from the plugin.

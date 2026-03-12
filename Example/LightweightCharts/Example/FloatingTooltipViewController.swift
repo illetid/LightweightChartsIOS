@@ -413,13 +413,14 @@ class FloatingTooltipViewController: UIViewController {
     private func handleCrosshairMove(_ parameters: MouseEventParams) {
         if case let .businessDayString(date) = parameters.time,
             let point = parameters.point,
-            case let .lineData(price) = parameters.price(forSeries: series) {
+            let price = parameters.data(forSeries: series),
+            let value = price.value {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 do {
-                    guard let coordinate = try await self.series.priceToCoordinate(price: price.value!) else { return }
+                    guard let coordinate = try await self.series.priceToCoordinate(price: value) else { return }
                     let dateString = date
-                    self.tooltipView.update(title: self.legend, price: price.value!, date: dateString)
+                    self.tooltipView.update(title: self.legend, price: value, date: dateString)
                     self.tooltipView.isHidden = false
                     self.centerXConstraint.constant = CGFloat(point.x)
                     self.bottomConstraint.constant = CGFloat(coordinate) - 16

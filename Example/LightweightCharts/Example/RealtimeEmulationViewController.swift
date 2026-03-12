@@ -157,7 +157,7 @@ class RealtimeEmulationViewController: UIViewController {
         CandlestickData(time: .string("2019-05-24"), open: 59.07, high: 59.36, low: 58.67, close: 59.32),
         CandlestickData(time: .string("2019-05-28"), open: 59.21, high: 59.66, low: 59.02, close: 59.57)
     ]
-    private lazy var lastClose = data.last!.close
+    private lazy var lastClose = data.last?.close ?? 0
     private lazy var lastIndex = data.endIndex - 1
     private lazy var targetIndex = lastIndex + 105 + Int((Double.random(in: 0...1) + 30).rounded())
     private lazy var targetPrice = randomPrice
@@ -235,7 +235,9 @@ class RealtimeEmulationViewController: UIViewController {
 
         stopSimulation()
         timer = Timer(timeInterval: 0.2, target: self, selector: #selector(handleTimerTick), userInfo: nil, repeats: true)
-        RunLoop.main.add(timer!, forMode: .common)
+        if let timer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
     }
 
     private func stopSimulation() {
@@ -248,7 +250,7 @@ class RealtimeEmulationViewController: UIViewController {
     }
     
     private func tick() {
-        let lastClose = self.lastClose ?? 0
+        let lastClose = self.lastClose
         let deltaY = targetPrice - lastClose
         let deltaX = targetIndex - lastIndex
         let andgle = deltaY / Double(deltaX)
@@ -295,7 +297,7 @@ class RealtimeEmulationViewController: UIViewController {
     private func reset() {
         series.setData(data: initialBusinessDayData)
         
-        lastClose = data.last!.close
+        lastClose = data.last?.close ?? 0
         lastIndex = data.endIndex - 1
         
         targetIndex = lastIndex + 5 + Int((Double.random(in: 0...1) + 30).rounded())

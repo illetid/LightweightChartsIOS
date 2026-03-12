@@ -165,8 +165,8 @@ class PaneSizingViewController: UIViewController {
     @objc private func setStretch() {
         Task { @MainActor [weak self] in
             guard let panes = try? await self?.chart.panes() ?? [], panes.count >= 2 else { return }
-            panes[0].setStretchFactor(stretchFactor: 3.0)
-            panes[1].setStretchFactor(stretchFactor: 1.0)
+            try? await panes[0].setStretchFactor(stretchFactor: 3.0)
+            try? await panes[1].setStretchFactor(stretchFactor: 1.0)
             self?.infoLabel.text = "Stretch: pane0=3, pane1=1"
         }
     }
@@ -174,8 +174,8 @@ class PaneSizingViewController: UIViewController {
     @objc private func setEqual() {
         Task { @MainActor [weak self] in
             guard let panes = try? await self?.chart.panes() ?? [], panes.count >= 2 else { return }
-            panes[0].setStretchFactor(stretchFactor: 1.0)
-            panes[1].setStretchFactor(stretchFactor: 1.0)
+            try? await panes[0].setStretchFactor(stretchFactor: 1.0)
+            try? await panes[1].setStretchFactor(stretchFactor: 1.0)
             self?.infoLabel.text = "Stretch: equal"
         }
     }
@@ -187,8 +187,8 @@ class PaneSizingViewController: UIViewController {
 
             var heights: [Int: Double] = [:]
             for pane in panes {
-                if let height = try? await pane.getHeight() {
-                    heights[pane.index] = height
+                if let paneIndex = try? await pane.paneIndex(), let height = try? await pane.getHeight() {
+                    heights[paneIndex] = height
                 }
             }
 

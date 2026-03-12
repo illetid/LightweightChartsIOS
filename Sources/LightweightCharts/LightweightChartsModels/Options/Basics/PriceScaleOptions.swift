@@ -168,15 +168,13 @@ public struct OverlayPriceScaleOptions: Codable, OverlayPriceScaleOptionsProtoco
     public var minimumWidth: Double?
     public var ensureEdgeTickMarksVisible: Bool?
     
-    public init(autoScale: Bool? = nil,
-                mode: PriceScaleMode? = nil,
+    public init(mode: PriceScaleMode? = nil,
                 invertScale: Bool? = nil,
                 alignLabels: Bool? = nil,
                 scaleMargins: PriceScaleMargins? = nil,
                 borderVisible: Bool? = nil,
                 borderColor: ChartColor? = nil,
                 entireTextOnly: Bool? = nil,
-                visible: Bool? = nil,
                 ticksVisible: Bool? = nil,
                 minimumWidth: Double? = nil,
                 ensureEdgeTickMarksVisible: Bool? = nil) {

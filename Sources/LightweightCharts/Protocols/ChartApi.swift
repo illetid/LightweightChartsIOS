@@ -7,38 +7,29 @@ public protocol PaneApi: AnyObject {
     /// the JavaScript evaluation fails, the result shape is invalid, decoding fails, or
     /// the caller cancels the operation.
 
-    /// Initial pane index hint for this handle.
-    ///
-    /// This value is not guaranteed to stay current after pane reordering, removal,
-    /// or creation flows that resolve pane position lazily.
-    /// Use `currentIndex()` to query the live pane position.
-    var index: Int { get }
-
-    // MARK: - Synchronous methods
-
     /**
      * Sets the height of this pane in pixels.
      * - Parameter height: the desired height
      */
-    func setHeight(height: Double)
+    func setHeight(height: Double) async throws(JavaScriptBridgeError)
 
     /**
      * Moves this pane to the specified index.
      * - Parameter paneIndex: the target pane index
      */
-    func moveTo(paneIndex: Int)
+    func moveTo(paneIndex: Int) async throws(JavaScriptBridgeError)
 
     /**
      * Sets whether this pane should be preserved when it has no series.
      * - Parameter preserve: true to keep the pane even when empty
      */
-    func setPreserveEmptyPane(preserve: Bool)
+    func setPreserveEmptyPane(preserve: Bool) async throws(JavaScriptBridgeError)
 
     /**
      * Sets the stretch factor of this pane.
      * - Parameter stretchFactor: the desired stretch factor
      */
-    func setStretchFactor(stretchFactor: Double)
+    func setStretchFactor(stretchFactor: Double) async throws(JavaScriptBridgeError)
 
     @discardableResult
     func addAreaSeries(options: AreaSeries.Options?) -> AreaSeries
@@ -64,8 +55,6 @@ public protocol PaneApi: AnyObject {
      * - Returns: the price scale API
      */
     func priceScale(priceScaleId: String) -> PriceScaleApi
-
-    // MARK: - Async methods (Swift 6)
 
     /**
      * Returns the size of this pane.
@@ -96,8 +85,6 @@ public protocol PaneApi: AnyObject {
      * - Returns: the pane's current index
      */
     func paneIndex() async throws(JavaScriptBridgeError) -> Int
-
-    func currentIndex() async throws(JavaScriptBridgeError) -> Int
 
 }
 
@@ -236,17 +223,17 @@ public protocol ChartApi: AnyObject {
      * Adds a new pane to the chart.
      */
     @discardableResult
-    func addPane(preserveEmptyPane: Bool?) -> PaneApi
+    func addPane(preserveEmptyPane: Bool?) async throws(JavaScriptBridgeError) -> PaneApi
 
     /**
      * Removes pane at a given index.
      */
-    func removePane(index: Int)
+    func removePane(index: Int) async throws(JavaScriptBridgeError)
 
     /**
      * Swaps positions of two panes.
      */
-    func swapPanes(first: Int, second: Int)
+    func swapPanes(first: Int, second: Int) async throws(JavaScriptBridgeError)
 
     /**
      * Removes a series of any type.
@@ -293,7 +280,7 @@ public protocol ChartApi: AnyObject {
     /**
      * Sets crosshair position programmatically.
      */
-    func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, horizontalPosition: Time, seriesApi: T)
+    func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, horizontalPosition: Time, seriesApi: T) async throws(JavaScriptBridgeError)
 
     /**
      * Clears crosshair position previously set programmatically.
@@ -380,8 +367,8 @@ public protocol ChartApi: AnyObject {
 // MARK: -
 public extension ChartApi {
 
-    func addPane() -> PaneApi {
-        addPane(preserveEmptyPane: nil)
+    func addPane() async throws(JavaScriptBridgeError) -> PaneApi {
+        try await addPane(preserveEmptyPane: nil)
     }
 
     func priceScale(priceScaleId: String?) -> PriceScaleApi {
@@ -418,11 +405,4 @@ public extension ChartApi {
         self.resize(width: Double(width), height: Double(height), forceRepaint: forceRepaint)
     }
 
-}
-
-public extension PaneApi {
-
-    func paneIndex() async throws(JavaScriptBridgeError) -> Int {
-        try await currentIndex()
-    }
 }

@@ -162,7 +162,7 @@ public class Chart: JavaScriptObject {
         return series
     }
     
-    private func subsriberScript(forName name: String, subscription: Subscription) -> String {
+    private func makeSubscriberScript(forName name: String, subscription: Subscription) -> String {
         switch subscription {
         case .crosshairMove, .click, .dblClick:
             return "var \(name) = subscriberCrosshairMoveAndClickFunction('\(name)');"
@@ -209,7 +209,7 @@ public class Chart: JavaScriptObject {
         let name = subscriberName(for: subscription)
         var subscriberScript = ""
         if activeSubscriptions[subscription] != .declared {
-            subscriberScript = subsriberScript(forName: name, subscription: subscription)
+            subscriberScript = makeSubscriberScript(forName: name, subscription: subscription)
             _context.addMessageHandler(messageHandler, name: name)
         }
         let script = subscriberScript + "\n\(jsName).subscribe\(subscription.jsRepresentation)(\(name));"
@@ -384,15 +384,21 @@ public func addBaselineSeries(options: BaselineSeries.Options?) -> BaselineSerie
 
     /// Adds a new pane to the chart.
     ///
-    /// - Returns: The index of the newly created pane.
-    public func addPane(preserveEmptyPane: Bool? = nil) -> PaneApi {
+    /// - Returns: A stable pane handle.
+    public func addPane(preserveEmptyPane: Bool? = nil) async throws(JavaScriptBridgeError) -> PaneApi {
         let pane = Pane(chartJSName: jsName, context: _context, closureStore: closureStore)
         var parameters = ""
         if let preserveEmptyPane {
             parameters = preserveEmptyPane ? "true" : "false"
         }
         let script = "window['\(pane.jsName)'] = \(jsName).addPane(\(parameters));"
-        _context.submitScript(script)
+        _ = try await _context.evaluateScript(script)
+
+        let paneIndexScript = "window['\(pane.jsName)'].paneIndex();"
+        let paneIndex = try await _context.evaluate(script: paneIndexScript, resultType: Int.self)
+        if paneIndex < 0 {
+            throw .evaluationFailed(script: paneIndexScript, message: "Added pane returned an invalid pane index.")
+        }
         return pane
     }
 
@@ -404,14 +410,14 @@ public func addBaselineSeries(options: BaselineSeries.Options?) -> BaselineSerie
         }
     }
 
-    public func removePane(index: Int) {
+    public func removePane(index: Int) async throws(JavaScriptBridgeError) {
         let script = "\(jsName).removePane(\(index));"
-        _context.submitScript(script)
+        _ = try await _context.evaluateScript(script)
     }
 
-    public func swapPanes(first: Int, second: Int) {
+    public func swapPanes(first: Int, second: Int) async throws(JavaScriptBridgeError) {
         let script = "\(jsName).swapPanes(\(first), \(second));"
-        _context.submitScript(script)
+        _ = try await _context.evaluateScript(script)
     }
     
 public func removeSeries<T: SeriesApi & SeriesObject>(seriesApi: T) {
@@ -453,17 +459,14 @@ public func unsubscribeCrosshairMove() {
         unsubscribe(subsription: .crosshairMove)
     }
 
-public func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, horizontalPosition: Time, seriesApi: T) {
+public func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, horizontalPosition: Time, seriesApi: T) async throws(JavaScriptBridgeError) {
         let script = """
-        if (typeof \(jsName).setCrosshairPosition === 'function') {
-            try {
-                \(jsName).setCrosshairPosition(\(price), \(horizontalPosition.jsonString), \(seriesApi.jsName));
-            } catch (e) {
-                console.warn('LWChart setCrosshairPosition failed:', e);
-            }
+        if (typeof \(jsName).setCrosshairPosition !== 'function') {
+            throw new Error('setCrosshairPosition is unavailable for this chart instance.');
         }
+        \(jsName).setCrosshairPosition(\(price), \(horizontalPosition.jsonString), \(seriesApi.jsName));
         """
-        _context.submitScript(script)
+        _ = try await _context.evaluateScript(script)
     }
 
 public func clearCrosshairPosition() {
@@ -546,31 +549,29 @@ public func applyOptions(options: ChartOptions) {
         let decodedString = try await _context.evaluate(script: script, resultType: String.self)
         let dataString = decodedString.isEmpty ? nil : decodedString
         do {
-            return try await withCheckedThrowingContinuation { continuation in
-            // Only the base64-to-UIImage conversion is offloaded; WebKit evaluation
-            // stays on the main actor so the JS bridge ordering and executor contract remain intact.
-                DispatchQueue.global().async {
-                var image: UIImage?
-                if let dataString = dataString {
-                    let prefix = "data:\(imageFormat);base64,"
-                    let base64String: String?
-                    if let range = dataString.range(of: prefix) {
-                        base64String = String(dataString[range.upperBound...])
-                    } else {
-                        base64String = nil
-                    }
-                    if let base64String = base64String,
-                       let data = Data(base64Encoded: base64String) {
-                        image = UIImage(data: data)
-                    }
+            let imageData = try await Task.detached(priority: .utility) { () throws -> Data in
+                guard let dataString else {
+                    throw JavaScriptBridgeError.invalidResult(expected: "non-empty image data URL", actual: "nil")
                 }
-                if let image = image {
-                    continuation.resume(returning: image)
-                } else {
-                    continuation.resume(throwing: JavaScriptBridgeError.invalidResult(expected: "non-empty image data URL", actual: dataString ?? "nil"))
+
+                let prefix = "data:\(imageFormat);base64,"
+                guard let range = dataString.range(of: prefix) else {
+                    throw JavaScriptBridgeError.invalidResult(expected: "non-empty image data URL", actual: dataString)
                 }
+
+                let base64String = String(dataString[range.upperBound...])
+                guard let data = Data(base64Encoded: base64String) else {
+                    throw JavaScriptBridgeError.invalidResult(expected: "base64 image data", actual: dataString)
+                }
+
+                return data
+            }.value
+
+            guard let image = UIImage(data: imageData) else {
+                throw JavaScriptBridgeError.invalidResult(expected: "decoded UIImage", actual: "invalid image bytes")
             }
-            }
+
+            return image
         } catch {
             throw JavaScriptBridgeError.wrap(error, script: "\(jsName).takeScreenshot")
         }
@@ -684,18 +685,12 @@ public extension ChartDelegate {
 @MainActor
 final class Pane: PaneApi {
 
-    /// Initial pane index hint for this handle.
-    ///
-    /// Use `currentIndex()` for authoritative index reads.
-    let index: Int
-
     private let chartJSName: String
     let jsName: String
     private unowned let context: JavaScriptEvaluator
     private weak var closureStore: ClosuresStore?
 
     init(index: Int, chartJSName: String, context: JavaScriptEvaluator, closureStore: ClosuresStore?) {
-        self.index = index
         self.chartJSName = chartJSName
         self.jsName = "pane" + .uniqueString
         self.context = context
@@ -714,7 +709,6 @@ final class Pane: PaneApi {
     }
 
     init(chartJSName: String, context: JavaScriptEvaluator, closureStore: ClosuresStore?) {
-        self.index = 0
         self.chartJSName = chartJSName
         self.jsName = "pane" + .uniqueString
         self.context = context
@@ -723,15 +717,6 @@ final class Pane: PaneApi {
 
     private func paneExpression() -> String {
         "window['\(jsName)']"
-    }
-
-    private func paneIndexLookupExpression() -> String {
-        """
-        (function() {
-            var panes = \(chartJSName).panes();
-            return panes.findIndex(function(pane) { return pane === \(paneExpression()); });
-        })()
-        """
     }
 
     private func addSeries<T: SeriesApi & SeriesObject>(options: T.Options) -> T {
@@ -750,15 +735,8 @@ final class Pane: PaneApi {
     // MARK: - Async methods (Swift 6)
 
     func size() async throws(JavaScriptBridgeError) -> Rectangle {
-        let script = """
-        (function() {
-            var paneIndex = \(paneIndexLookupExpression());
-            if (paneIndex === -1) {
-                throw new Error('Pane is no longer attached to this chart.');
-            }
-            return \(chartJSName).paneSize(paneIndex);
-        })();
-        """
+        let paneIndex = try await paneIndex()
+        let script = "\(chartJSName).paneSize(\(paneIndex));"
         return try await context.decodedResult(forScript: script)
     }
 
@@ -777,41 +755,36 @@ final class Pane: PaneApi {
         return try await context.evaluate(script: script, resultType: Double.self)
     }
 
-    func currentIndex() async throws(JavaScriptBridgeError) -> Int {
-        let paneIndex = try await context.evaluate(script: paneIndexLookupExpression(), resultType: Int.self)
+    func paneIndex() async throws(JavaScriptBridgeError) -> Int {
+        let script = "\(paneExpression()).paneIndex();"
+        let paneIndex = try await context.evaluate(script: script, resultType: Int.self)
         if paneIndex == -1 {
             throw JavaScriptBridgeError.evaluationFailed(
-                script: paneIndexLookupExpression(),
+                script: script,
                 message: "Pane is no longer attached to this chart."
             )
         }
         return paneIndex
     }
 
-    func paneIndex() async throws(JavaScriptBridgeError) -> Int {
-        try await currentIndex()
-    }
-
-    // MARK: - Synchronous methods
-
-    func setHeight(height: Double) {
+    func setHeight(height: Double) async throws(JavaScriptBridgeError) {
         let script = "\(paneExpression()).setHeight(\(height));"
-        context.submitScript(script)
+        _ = try await context.evaluateScript(script)
     }
 
-    func moveTo(paneIndex: Int) {
+    func moveTo(paneIndex: Int) async throws(JavaScriptBridgeError) {
         let script = "\(paneExpression()).moveTo(\(paneIndex));"
-        context.submitScript(script)
+        _ = try await context.evaluateScript(script)
     }
 
-    func setPreserveEmptyPane(preserve: Bool) {
+    func setPreserveEmptyPane(preserve: Bool) async throws(JavaScriptBridgeError) {
         let script = "\(paneExpression()).setPreserveEmptyPane(\(preserve ? "true" : "false"));"
-        context.submitScript(script)
+        _ = try await context.evaluateScript(script)
     }
 
-    func setStretchFactor(stretchFactor: Double) {
+    func setStretchFactor(stretchFactor: Double) async throws(JavaScriptBridgeError) {
         let script = "\(paneExpression()).setStretchFactor(\(stretchFactor));"
-        context.submitScript(script)
+        _ = try await context.evaluateScript(script)
     }
 
     func addAreaSeries(options: AreaSeries.Options?) -> AreaSeries {

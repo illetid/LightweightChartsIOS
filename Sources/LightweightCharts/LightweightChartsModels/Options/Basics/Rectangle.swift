@@ -1,6 +1,6 @@
 import Foundation
 
-public struct Rectangle: Decodable, Sendable {
+public struct Rectangle: Codable, Sendable {
     public let width: Double
     public let height: Double
 

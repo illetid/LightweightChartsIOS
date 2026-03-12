@@ -131,7 +131,10 @@ extension UpDownMarkersViewController: LightweightChartsDelegate {
                     value: value + 10
                 )
                 // The plugin calculates the sign by comparing value + 10 with the previous value
-                self.upDownMarkersPlugin.update(updatedData, isUpdate: true)
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+                    try? await self.upDownMarkersPlugin.update(updatedData, isUpdate: true)
+                }
             }
         }
     }

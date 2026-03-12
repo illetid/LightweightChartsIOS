@@ -91,9 +91,9 @@ public extension SeriesApi where Self: SeriesObject {
         context.submitScript(script)
     }
 
-    func moveToPane(paneIndex: Int) {
+    func moveToPane(paneIndex: Int) async throws(JavaScriptBridgeError) {
         let script = "\(jsName).moveToPane(\(paneIndex));"
-        context.submitScript(script)
+        _ = try await context.evaluateScript(script)
     }
 
     func subscribeDataChanged() {
@@ -116,8 +116,9 @@ public extension SeriesApi where Self: SeriesObject {
         return try await context.decodedResult(forScript: script)
     }
 
-    func barsInLogicalRange(range: FromToRange<Double>) async throws(JavaScriptBridgeError) -> BarsInfo {
-        let script = "\(jsName).barsInLogicalRange(\(range.jsonString));"
+    func barsInLogicalRange(range: FromToRange<Double>?) async throws(JavaScriptBridgeError) -> BarsInfo? {
+        let rangeValue = range?.jsonString ?? "null"
+        let script = "\(jsName).barsInLogicalRange(\(rangeValue));"
         return try await context.decodedResult(forScript: script)
     }
 

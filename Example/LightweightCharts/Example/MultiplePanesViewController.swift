@@ -6,7 +6,9 @@ import LightweightCharts
 /// Shows a candlestick chart on the main pane (pane 0) and a volume histogram
 /// on a separate pane (pane 1), mimicking a typical trading chart layout.
 /// The secondary pane also includes a text watermark to demonstrate that
-/// watermark plugins can target panes other than the main pane.
+/// watermark plugins can target panes other than the main pane, and the example
+/// exposes controls for adding/removing/swapping panes and moving a series
+/// between panes at runtime.
 class MultiplePanesViewController: UIViewController {
 
     private var chart: LightweightCharts!
@@ -15,6 +17,19 @@ class MultiplePanesViewController: UIViewController {
     private var volumePaneWatermark: TextWatermarkPlugin<Chart>?
     private var controlsStackView: UIStackView!
     private let statusLabel = UILabel()
+    private let volumeWatermarkOptions = TextWatermarkOptions(
+        horizontalAlignment: .right,
+        verticalAlignment: .top,
+        lines: [
+            WatermarkLine(
+                text: "Volume Pane",
+                color: "rgba(209, 212, 220, 0.45)",
+                fontSize: 18,
+                fontFamily: "-apple-system",
+                fontStyle: "normal"
+            )
+        ]
+    )
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -45,17 +60,26 @@ class MultiplePanesViewController: UIViewController {
         inspectButton.setTitle("Inspect Panes", for: .normal)
         inspectButton.addTarget(self, action: #selector(inspectPanesTapped), for: .touchUpInside)
 
+        let moveVolumeButton = UIButton(type: .system)
+        moveVolumeButton.setTitle("Move Volume 0 ↔ 1", for: .normal)
+        moveVolumeButton.addTarget(self, action: #selector(moveVolumeTapped), for: .touchUpInside)
+
         let topRow = UIStackView(arrangedSubviews: [addButton, removeButton])
         topRow.axis = .horizontal
         topRow.distribution = .fillEqually
         topRow.spacing = 8
 
-        let bottomRow = UIStackView(arrangedSubviews: [swapButton, inspectButton])
+        let middleRow = UIStackView(arrangedSubviews: [swapButton, inspectButton])
+        middleRow.axis = .horizontal
+        middleRow.distribution = .fillEqually
+        middleRow.spacing = 8
+
+        let bottomRow = UIStackView(arrangedSubviews: [moveVolumeButton])
         bottomRow.axis = .horizontal
         bottomRow.distribution = .fillEqually
         bottomRow.spacing = 8
 
-        let controlsStackView = UIStackView(arrangedSubviews: [topRow, bottomRow])
+        let controlsStackView = UIStackView(arrangedSubviews: [topRow, middleRow, bottomRow])
         controlsStackView.axis = .vertical
         controlsStackView.spacing = 8
         controlsStackView.translatesAutoresizingMaskIntoConstraints = false
@@ -71,6 +95,10 @@ class MultiplePanesViewController: UIViewController {
 
         let options = ChartOptions(
             layout: LayoutOptions(background: .solid(color: "#131722"), textColor: "#d1d4dc"),
+            leftPriceScale: VisiblePriceScaleOptions(
+                borderVisible: false,
+                visible: true
+            ),
             rightPriceScale: VisiblePriceScaleOptions(
                 scaleMargins: PriceScaleMargins(top: 0.1, bottom: 0.1),
                 borderVisible: false
@@ -97,7 +125,7 @@ class MultiplePanesViewController: UIViewController {
                 controlsStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
                 controlsStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
                 controlsStackView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
-                controlsStackView.heightAnchor.constraint(equalToConstant: 96)
+                controlsStackView.heightAnchor.constraint(equalToConstant: 144)
             ])
         } else {
             NSLayoutConstraint.activate([
@@ -113,7 +141,7 @@ class MultiplePanesViewController: UIViewController {
                 controlsStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
                 controlsStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
                 controlsStackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8),
-                controlsStackView.heightAnchor.constraint(equalToConstant: 96)
+                controlsStackView.heightAnchor.constraint(equalToConstant: 144)
             ])
         }
         self.chart = chart
@@ -168,11 +196,15 @@ class MultiplePanesViewController: UIViewController {
         // MARK: - Pane 1: Histogram volume series (separate pane)
         // Adding a series to paneIndex: 1 automatically creates the second pane
         let volumeOptions = HistogramSeriesOptions(
+            priceScaleId: "left",
             priceLineVisible: false,
             priceFormat: .builtIn(BuiltInPriceFormat(type: .volume, precision: nil, minMove: nil)),
             color: "#26a69a"
         )
         let volumeSeries = chart.addHistogramSeries(options: volumeOptions, paneIndex: 1)
+        chart.priceScale(priceScaleId: "left", paneIndex: 1).applyOptions(
+            options: PriceScaleOptions(borderVisible: false, visible: true)
+        )
 
         let volumeData: [HistogramData] = [
             HistogramData(color: "rgba(38, 198, 218, 0.8)", time: .string("2018-10-19"), value: 19_103_293),
@@ -209,26 +241,16 @@ class MultiplePanesViewController: UIViewController {
         volumeSeries.setData(data: volumeData)
         self.volumeSeries = volumeSeries
 
-        let watermarkOptions = TextWatermarkOptions(
-            horizontalAlignment: .right,
-            verticalAlignment: .top,
-            lines: [
-                WatermarkLine(
-                    text: "Volume Pane",
-                    color: "rgba(209, 212, 220, 0.45)",
-                    fontSize: 18,
-                    fontFamily: "-apple-system",
-                    fontStyle: "normal"
-                )
-            ]
-        )
-        volumePaneWatermark = chart.createTextWatermarkPlugin(paneIndex: 1, options: watermarkOptions)
+        volumePaneWatermark = try? chart.createTextWatermarkPlugin(paneIndex: 1, options: volumeWatermarkOptions)
         refreshPaneStatus()
     }
 
     @objc private func addPaneTapped() {
-        _ = chart.addPane()
-        refreshPaneStatus()
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            _ = try? await self.chart.addPane()
+            self.refreshPaneStatus()
+        }
     }
 
     @objc private func removePaneTapped() {
@@ -236,8 +258,8 @@ class MultiplePanesViewController: UIViewController {
             guard let self = self else { return }
             guard let panes = try? await self.chart.panes() else { return }
             guard let lastPane = panes.last else { return }
-            guard let liveIndex = try? await lastPane.currentIndex(), liveIndex > 0 else { return }
-            self.chart.removePane(index: liveIndex)
+            guard let liveIndex = try? await lastPane.paneIndex(), liveIndex > 0 else { return }
+            try? await self.chart.removePane(index: liveIndex)
             self.refreshPaneStatus()
         }
     }
@@ -246,13 +268,38 @@ class MultiplePanesViewController: UIViewController {
         Task { @MainActor [weak self] in
             guard let self = self else { return }
             guard let panes = try? await self.chart.panes(), panes.count > 1 else { return }
-            self.chart.swapPanes(first: 0, second: 1)
+            try? await self.chart.swapPanes(first: 0, second: 1)
             self.refreshPaneStatus()
         }
     }
 
     @objc private func inspectPanesTapped() {
         refreshPaneStatus()
+    }
+
+    @objc private func moveVolumeTapped() {
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+
+            do {
+                let currentPane = try await self.volumeSeries.getPane()
+                let currentIndex = try await currentPane.paneIndex()
+                let targetIndex = currentIndex == 0 ? 1 : 0
+
+                if targetIndex > 0 {
+                    let panes = try await self.chart.panes()
+                    if panes.count <= targetIndex {
+                        _ = try await self.chart.addPane()
+                    }
+                }
+
+                try await self.volumeSeries.moveToPane(paneIndex: targetIndex)
+                self.recreateVolumeWatermark(onPane: targetIndex)
+                self.refreshPaneStatus()
+            } catch {
+                self.statusLabel.text = "Panes: move failed"
+            }
+        }
     }
 
     private func refreshPaneStatus() {
@@ -262,13 +309,18 @@ class MultiplePanesViewController: UIViewController {
                 let panes = try await self.chart.panes()
                 var details: [String] = []
                 for pane in panes {
-                    let current = try await pane.currentIndex()
-                    details.append("hint \(pane.index) -> live \(current)")
+                    let current = try await pane.paneIndex()
+                    details.append("pane \(current)")
                 }
                 self.statusLabel.text = "Panes: \(details.joined(separator: " | "))"
             } catch {
                 self.statusLabel.text = "Panes: unavailable"
             }
         }
+    }
+
+    private func recreateVolumeWatermark(onPane paneIndex: Int) {
+        volumePaneWatermark?.detach()
+        volumePaneWatermark = try? chart.createTextWatermarkPlugin(paneIndex: paneIndex, options: volumeWatermarkOptions)
     }
 }

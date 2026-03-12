@@ -278,7 +278,7 @@ final class AsyncAPIViewController: UIViewController {
         if let point = event.point {
             fragments.append("x: \(Int(point.x)) y: \(Int(point.y))")
         }
-        if let series, case let .lineData(price) = event.price(forSeries: series), let value = price.value {
+        if let series, let data = event.data(forSeries: series), let value = data.value {
             fragments.append(String(format: "price: %.2f", value))
         }
         return fragments.joined(separator: "\n")

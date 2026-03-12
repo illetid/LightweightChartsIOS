@@ -8,32 +8,32 @@ public struct CrosshairLineOptions: Codable, Sendable {
     /**
      Color of a certain crosshair line
      */
-    var color: ChartColor?
+    public var color: ChartColor?
     
     /**
      Width of a certain crosshair line and corresponding scale label
      */
-    var width: LineWidth?
+    public var width: LineWidth?
     
     /**
      Style of a certain crosshair line
      */
-    var style: LineStyle?
+    public var style: LineStyle?
     
     /**
      Visibility of a certain crosshair line
      */
-    var visible: Bool?
+    public var visible: Bool?
     
     /**
      Visibility of corresponding scale label
      */
-    var labelVisible: Bool?
+    public var labelVisible: Bool?
     
     /**
      Background color of corresponding scale label
      */
-    var labelBackgroundColor: ChartColor?
+    public var labelBackgroundColor: ChartColor?
     
     public init(color: ChartColor? = nil,
                 width: LineWidth? = nil,

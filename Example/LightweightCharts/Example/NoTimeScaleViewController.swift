@@ -432,7 +432,8 @@ class NoTimeScaleViewController: UIViewController {
     }
 
     private func handleCrosshairMove(_ parameters: MouseEventParams) {
-        guard case let .lineData(price) = parameters.price(forSeries: areaSeries),
+        guard let price = parameters.data(forSeries: areaSeries),
+            let value = price.value,
             let time = parameters.time,
             let point = parameters.point
             else {
@@ -451,7 +452,7 @@ class NoTimeScaleViewController: UIViewController {
             dateString = time
         }
 
-        legendLabel.text = "\((price.value! * 100 / 100).rounded()) | \(dateString)"
+        legendLabel.text = "\((value * 100 / 100).rounded()) | \(dateString)"
         legendLabel.isHidden = false
         let leading = CGFloat(point.x) - legendLabel.frame.width / 2
         let constant = max(0, min(chart.frame.width - legendLabel.frame.width, leading))

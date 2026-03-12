@@ -84,17 +84,9 @@ public protocol SeriesPlugin: Plugin {
 public protocol PanePlugin: Plugin {
 
     /**
-     The pane index at the time this plugin was created.
-
-     This snapshot is not updated after pane reordering or removal.
-     Use `currentPaneIndex()` to query the live pane position.
-     */
-    var paneIndex: Int { get }
-
-    /**
      Returns the current live index of the pane this plugin is attached to.
 
      - Returns: The pane's current index in the chart's `panes()` array.
      */
-    func currentPaneIndex() async throws(JavaScriptBridgeError) -> Int
+    func paneIndex() async throws(JavaScriptBridgeError) -> Int
 }

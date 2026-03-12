@@ -117,7 +117,11 @@ public protocol SeriesApi: AnyObject {
      */
     func setSeriesOrder(order: Int)
 
-    func moveToPane(paneIndex: Int)
+    /**
+     * Moves this series to the specified pane.
+     * - Parameter paneIndex: the target pane index
+     */
+    func moveToPane(paneIndex: Int) async throws(JavaScriptBridgeError)
 
     func subscribeDataChanged()
 
@@ -154,15 +158,15 @@ public protocol SeriesApi: AnyObject {
     /**
      * Retrieves information about the series' data within a given logical range.
      *
-     * - Parameter range: the logical range to retrieve info for
-     * - Returns: the bars info for the given logical range: fields `from` and `to` are
+     * - Parameter range: the logical range to retrieve info for, or `nil` to mirror the JS `null` input case
+     * - Returns: the bars info for the given logical range, or `nil` when the JS API reports no bars for the range: fields `from` and `to` are
      * `Logical` values for the first and last bar within the range, and `barsBefore` and
      * `barsAfter` count the available bars outside the given index range. If these
      * values are negative, it means that the given range is not fully filled with bars
      * on the given side, but bars are missing instead (would show up as a margin if the
      * the given index range falls into the viewport).
      */
-    func barsInLogicalRange(range: FromToRange<Double>) async throws(JavaScriptBridgeError) -> BarsInfo
+    func barsInLogicalRange(range: FromToRange<Double>?) async throws(JavaScriptBridgeError) -> BarsInfo?
 
     /**
      * Returns currently applied options

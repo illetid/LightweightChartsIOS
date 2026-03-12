@@ -302,7 +302,7 @@ extension ImageWatermarkViewController: LightweightChartsDelegate {
             maxWidth: 200,
             maxHeight: 200
         )
-        watermark = chart.createImageWatermarkPlugin(paneIndex: 0, imageUrl: imageUrl, options: watermarkOptions)
+        watermark = try? chart.createImageWatermarkPlugin(paneIndex: 0, imageUrl: imageUrl, options: watermarkOptions)
         scheduleWatermarkUpdates()
     }
 

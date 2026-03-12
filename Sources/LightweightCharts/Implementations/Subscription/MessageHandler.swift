@@ -27,12 +27,15 @@ class MessageHandler: NSObject {
     weak var delegate: MessageHandlerDelegate?
     
     private func decode<T: Decodable>(_ jsonString: String) throws -> T {
-        do {
-            let data = jsonString.data(using: .utf8)!
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw error
+        guard let data = jsonString.data(using: .utf8) else {
+            throw NSError(
+                domain: "LWChart.MessageHandler",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid UTF-8 encoding in message payload"]
+            )
         }
+
+        return try JSONDecoder().decode(T.self, from: data)
     }
 
     func handleMessage(name: String, bodyJSONString: String) {

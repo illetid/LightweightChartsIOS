@@ -338,34 +338,40 @@ public class LightweightCharts: UIView {
     }
 
     /// Queues work until the chart bootstrap finishes, or runs it immediately if already ready.
-    public func whenReady(_ handler: @escaping (LightweightCharts) -> Void) {
+    @discardableResult
+    public func whenReady(_ handler: @escaping (LightweightCharts) -> Void) -> Bool {
         switch bootstrapState {
         case .ready:
             handler(self)
+            return true
         case .failed:
-            break
+            return false
         case .cancelled:
-            break
+            return false
         case .removed:
-            break
+            return false
         case .loading:
             readyHandlers.append(handler)
+            return true
         }
     }
 
     /// Registers a handler for bootstrap failures, or runs it immediately if the chart has already failed to load.
-    public func onLoadError(_ handler: @escaping (LightweightCharts, Error) -> Void) {
+    @discardableResult
+    public func onLoadError(_ handler: @escaping (LightweightCharts, Error) -> Void) -> Bool {
         switch bootstrapState {
         case .failed(let error):
             handler(self, error)
+            return true
         case .ready:
-            break
+            return false
         case .cancelled:
-            break
+            return false
         case .removed:
-            break
+            return false
         case .loading:
             loadFailureHandlers.append(handler)
+            return true
         }
     }
     
@@ -435,6 +441,17 @@ public class LightweightCharts: UIView {
         return try await webView.evaluateScript(script)
     }
 
+    private func evaluateBootstrapScript(_ script: String, name: String) async throws(JavaScriptBridgeError) {
+        do {
+            _ = try await evaluateBootstrapScript(script)
+        } catch {
+            if case let JavaScriptBridgeError.evaluationFailed(_, message) = error {
+                throw JavaScriptBridgeError.evaluationFailed(script: "<bootstrap:\(name)>", message: message)
+            }
+            throw JavaScriptBridgeError.wrap(error, script: "<bootstrap:\(name)>")
+        }
+    }
+
     private func submitRawScript(_ script: String) {
         if let rawScriptSubmitterOverride {
             rawScriptSubmitterOverride(script)
@@ -475,10 +492,10 @@ public class LightweightCharts: UIView {
                 let libraryScript = try self.scriptLoader("lightweight-charts")
                 let wrapperScript = try self.scriptLoader("wrapper_functions")
 
-                _ = try await self.evaluateBootstrapScript(contentSetupScript)
-                _ = try await self.evaluateBootstrapScript(libraryScript)
-                _ = try await self.evaluateBootstrapScript(wrapperScript)
-                _ = try await self.evaluateBootstrapScript(plan.createChartScript)
+                try await self.evaluateBootstrapScript(contentSetupScript, name: "content-setup")
+                try await self.evaluateBootstrapScript(libraryScript, name: "lightweight-charts")
+                try await self.evaluateBootstrapScript(wrapperScript, name: "wrapper_functions")
+                try await self.evaluateBootstrapScript(plan.createChartScript, name: "createChart")
                 self.didCreateJavaScriptChart = true
 
                 if let afterCreateChartScriptHook {
@@ -510,7 +527,7 @@ public class LightweightCharts: UIView {
                     return
                 }
 
-                let bridgeError = JavaScriptBridgeError.wrap(error, script: "<bootstrap>")
+                let bridgeError = JavaScriptBridgeError.wrap(error)
                 self.chartContext.failBootstrap(with: bridgeError)
                 self.bootstrapState = .failed(bridgeError)
                 self.readyHandlers.removeAll()
@@ -587,6 +604,7 @@ extension LightweightCharts: ChartApi {
             bootstrapState = .cancelled
             readyHandlers.removeAll()
             loadFailureHandlers.removeAll()
+            promptHandler.removeAllMethods()
             bootstrapTask?.cancel()
             bootstrapTask = nil
             pendingBootstrapPlan = nil
@@ -598,6 +616,7 @@ extension LightweightCharts: ChartApi {
             pendingBootstrapPlan = nil
             readyHandlers.removeAll()
             loadFailureHandlers.removeAll()
+            promptHandler.removeAllMethods()
         case .failed, .cancelled, .removed:
             break
         }
@@ -664,20 +683,20 @@ extension LightweightCharts: ChartApi {
     // MARK: - Pane management (v5)
 
     /// Adds a new pane to the chart.
-    public func addPane(preserveEmptyPane: Bool? = nil) -> PaneApi {
-        chart.addPane(preserveEmptyPane: preserveEmptyPane)
+    public func addPane(preserveEmptyPane: Bool? = nil) async throws(JavaScriptBridgeError) -> PaneApi {
+        try await chart.addPane(preserveEmptyPane: preserveEmptyPane)
     }
 
     public func panes() async throws(JavaScriptBridgeError) -> [PaneApi] {
         try await chart.panes()
     }
 
-    public func removePane(index: Int) {
-        chart.removePane(index: index)
+    public func removePane(index: Int) async throws(JavaScriptBridgeError) {
+        try await chart.removePane(index: index)
     }
 
-    public func swapPanes(first: Int, second: Int) {
-        chart.swapPanes(first: first, second: second)
+    public func swapPanes(first: Int, second: Int) async throws(JavaScriptBridgeError) {
+        try await chart.swapPanes(first: first, second: second)
     }
     
     public func subscribeClick() {
@@ -704,8 +723,8 @@ extension LightweightCharts: ChartApi {
         chart.unsubscribeCrosshairMove()
     }
 
-    public func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, horizontalPosition: Time, seriesApi: T) {
-        chart.setCrosshairPosition(price: price, horizontalPosition: horizontalPosition, seriesApi: seriesApi)
+    public func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, horizontalPosition: Time, seriesApi: T) async throws(JavaScriptBridgeError) {
+        try await chart.setCrosshairPosition(price: price, horizontalPosition: horizontalPosition, seriesApi: seriesApi)
     }
 
     public func clearCrosshairPosition() {
@@ -754,9 +773,12 @@ extension LightweightCharts: ChartApi {
     ///   - paneIndex: The index of the pane to attach the plugin to (0 is the main pane).
     ///   - options: Initial options for the text watermark.
     /// - Returns: A new text watermark plugin instance.
-    public func createTextWatermarkPlugin(paneIndex: Int, options: TextWatermarkOptions) -> TextWatermarkPlugin<Chart> {
+    public func createTextWatermarkPlugin(paneIndex: Int, options: TextWatermarkOptions) throws(JavaScriptBridgeError) -> TextWatermarkPlugin<Chart> {
         guard let chart = chart as? Chart else {
-            fatalError("Internal chart is not of expected type Chart")
+            throw JavaScriptBridgeError.evaluationFailed(
+                script: "LightweightCharts.createTextWatermarkPlugin",
+                message: "Internal chart is not of expected type Chart"
+            )
         }
         return chart.createTextWatermarkPlugin(paneIndex: paneIndex, options: options)
     }
@@ -772,9 +794,12 @@ extension LightweightCharts: ChartApi {
         paneIndex: Int,
         imageUrl: String,
         options: ImageWatermarkOptions = ImageWatermarkOptions()
-    ) -> ImageWatermarkPlugin<Chart> {
+    ) throws(JavaScriptBridgeError) -> ImageWatermarkPlugin<Chart> {
         guard let chart = chart as? Chart else {
-            fatalError("Internal chart is not of expected type Chart")
+            throw JavaScriptBridgeError.evaluationFailed(
+                script: "LightweightCharts.createImageWatermarkPlugin",
+                message: "Internal chart is not of expected type Chart"
+            )
         }
         return chart.createImageWatermarkPlugin(paneIndex: paneIndex, imageUrl: imageUrl, options: options)
     }

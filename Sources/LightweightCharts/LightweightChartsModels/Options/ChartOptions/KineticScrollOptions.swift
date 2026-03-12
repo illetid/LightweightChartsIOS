@@ -8,12 +8,12 @@ public struct KineticScrollOptions: Codable, Sendable {
     /**
      If true, kinetic scroll is enabled via touch gestures
      */
-    var touch: Bool?
+    public var touch: Bool?
     
     /**
      If true, kinetic scroll is enabled via mouse
      */
-    var mouse: Bool?
+    public var mouse: Bool?
     
     public init(touch: Bool? = nil, mouse: Bool? = nil) {
         self.touch = touch

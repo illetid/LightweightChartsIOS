@@ -419,10 +419,11 @@ class MagnifierTooltipViewController: UIViewController {
     private func handleCrosshairMove(_ parameters: MouseEventParams) {
         if case let .businessDayString(data) = parameters.time,
             let point = parameters.point,
-            case let .lineData(price) = parameters.price(forSeries: series) {
+            let price = parameters.data(forSeries: series),
+            let value = price.value {
 
             let dateString = data
-            tooltipView.update(title: legend, price: price.value!, date: dateString)
+            tooltipView.update(title: legend, price: value, date: dateString)
             tooltipView.isHidden = false
 
             let x = CGFloat(point.x)

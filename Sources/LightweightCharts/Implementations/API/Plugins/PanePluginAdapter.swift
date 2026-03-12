@@ -12,11 +12,6 @@ import Foundation
 @MainActor
 open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
 
-    // MARK: - PanePlugin Conformance
-
-    /// Snapshot of the pane index this plugin was created with.
-    public let paneIndex: Int
-
     // MARK: - Properties
 
     /// The JavaScript variable name for this plugin instance.
@@ -53,7 +48,6 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
     ///   - context: The JavaScript evaluator context for script execution.
     public init(chart: Chart, paneIndex: Int, context: JavaScriptEvaluator) {
         self.chartJsName = chart.jsName
-        self.paneIndex = paneIndex
         self._context = context
         self.jsName = PanePluginAdapter.makeJSName()
         self.paneJsName = "pane" + .uniqueString
@@ -164,12 +158,7 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
     }
 
     func paneIndexLookupExpression() -> String {
-        """
-        (function() {
-            var panes = \(chartJsName).panes();
-            return panes.findIndex(function(pane) { return pane === \(paneExpression()); });
-        })()
-        """
+        "\(paneExpression()).paneIndex()"
     }
 
     /// Returns a guarded script that resolves the plugin pane and creates a JS-backed object.
@@ -191,7 +180,7 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
         """
     }
 
-    public func currentPaneIndex() async throws(JavaScriptBridgeError) -> Int {
+    public func paneIndex() async throws(JavaScriptBridgeError) -> Int {
         let context = try requireContext()
         let paneIndex = try await context.evaluate(script: paneIndexLookupExpression(), resultType: Int.self)
         if paneIndex == -1 {

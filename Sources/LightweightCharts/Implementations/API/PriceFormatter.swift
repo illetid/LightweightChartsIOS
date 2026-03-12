@@ -26,7 +26,7 @@ extension PriceFormatter: PriceFormatterApi {
     // MARK: - Async methods (Swift 6)
 
     func format(price: BarPrice) async throws(JavaScriptBridgeError) -> String {
-        let script = "\(jsName).format(\(price));"
+        let script = "\(jsName).format(\(price.jsonString));"
         return try await requireContext().evaluate(script: script, resultType: String.self)
     }
 
