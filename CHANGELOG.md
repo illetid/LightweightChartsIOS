@@ -9,11 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 #### Series Markers
+
 - Price-positioned markers with `atPriceTop`, `atPriceBottom`, `atPriceMiddle` positions
 - Optional `price: Double?` property on `SeriesMarker` for price-level positioning
 - `SeriesMarkerZOrder` enum for controlling marker z-order (`normal`, `noOverlap`)
 
 #### Series API
+
 - `seriesOrder()` - get current series order
 - `setSeriesOrder(_:)` - set series order
 - `pop(count:)` - remove last N data points from series
@@ -22,11 +24,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `isDataValidationEnabled` - inspect current validation state for a series
 
 #### Price Scale API
+
 - `setVisibleRange(_:)` - set visible price range
 - `getVisibleRange()` - get current visible price range
 - `setAutoScale(_:)` - enable/disable auto-scaling
 
 #### Pane API
+
 - `getHeight()` - get pane height
 - `setHeight(_:)` - set pane height
 - `moveTo(_:)` - move pane to new index
@@ -36,9 +40,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `currentIndex()` - get the live pane index after pane reorder/removal
 
 #### Pane Plugin API
+
 - `currentPaneIndex()` - get the live pane index for pane-scoped plugins after pane reorder/removal
 
 #### Data Conflation
+
 - `ConflationPriority` enum (`background`, `userVisible`, `userBlocking`)
 - TimeScale conflation properties: `conflationWidthThreshold`, `conflationMaxTimeWeight`, `conflationPriority`
 
@@ -59,6 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This release requires Swift 6 and iOS 15+. The API has been migrated from completion handlers to async/await:
 
 **Before (v4/v5.0):**
+
 ```swift
 series.price { price in
     // handle price
@@ -66,6 +73,7 @@ series.price { price in
 ```
 
 **After (v5.1.0):**
+
 ```swift
 let price = try await series.price()
 ```
