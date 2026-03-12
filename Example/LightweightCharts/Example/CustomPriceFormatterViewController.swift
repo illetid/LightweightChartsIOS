@@ -27,33 +27,11 @@ class CustomPriceFormatterViewController: UIViewController {
             case .pound: return "function(price) { return '\u{00A3}' + price.toFixed(2); }"
             }
         }
-
-        var tickmarkFormatterString: String {
-            switch self {
-            case .dollar:
-                return "function(prices) { return prices.map(function(price) { return '$' + price.toFixed(0); }); }"
-            case .pound:
-                return "function(prices) { return prices.map(function(price) { return '\u{00A3}' + price.toFixed(0); }); }"
-            }
-        }
         
         var formatterClosure: (BarPrice) -> String {
             switch self {
             case .dollar: return { "🦄$\(($0 * 100).rounded() / 100)" }
             case .pound: return { "☁️\u{00A3}\(($0 * 100).rounded() / 100)" }
-            }
-        }
-
-        var tickmarkFormatterClosure: ([BarPrice]) -> [String] {
-            switch self {
-            case .dollar:
-                return { prices in
-                    prices.map { "$\(Int($0.rounded()))" }
-                }
-            case .pound:
-                return { prices in
-                    prices.map { "\u{00A3}\(Int($0.rounded()))" }
-                }
             }
         }
         
@@ -136,7 +114,8 @@ class CustomPriceFormatterViewController: UIViewController {
             grid: GridOptions(
                 verticalLines: GridLineOptions(color: "rgba(255, 255, 255, 0.2)"),
                 horizontalLines: GridLineOptions(color: "rgba(255, 255, 255, 0.2)")
-            )
+            ),
+            localization: LocalizationOptions(priceFormatter: .javaScript(FormatterType.allCases[0].formatterString))
         )
         let chart = LightweightCharts(options: options)
         view.addSubview(chart)
@@ -160,8 +139,6 @@ class CustomPriceFormatterViewController: UIViewController {
     }
     
     private func setupData() {
-        guard series == nil else { return }
-
         let options = AreaSeriesOptions(
             topColor: "rgba(21, 101, 192, 0.5)",
             bottomColor: "rgba(21, 101, 192, 0.5)",
@@ -325,33 +302,19 @@ class CustomPriceFormatterViewController: UIViewController {
         ]
         series.setData(data: data)
         self.series = series
-        updateFormatter()
     }
 
     private func updateFormatter() {
-        guard let series else { return }
-
-        let priceFormat: PriceFormat
+        let method: JavaScriptMethod<BarPrice, String>
         switch selectedSource {
         case .js:
-            priceFormat = .custom(
-                CustomPriceFormat(
-                    minMove: 0.01,
-                    formatterJavaScript: selectedFormat.formatterString,
-                    tickmarksFormatterJavaScript: selectedFormat.tickmarkFormatterString
-                )
-            )
+            method = .javaScript(selectedFormat.formatterString)
         case .native:
-            priceFormat = .custom(
-                CustomPriceFormat(
-                    minMove: 0.01,
-                    formatter: selectedFormat.formatterClosure,
-                    tickmarksFormatter: selectedFormat.tickmarkFormatterClosure
-                )
-            )
+            method = .closure(selectedFormat.formatterClosure)
         }
-
-        series.applyOptions(options: AreaSeriesOptions(priceFormat: priceFormat))
+        
+        let options = ChartOptions(localization: LocalizationOptions(priceFormatter: method))
+        chart.applyOptions(options: options)
     }
     
     @objc private func formatterValueChanged(_ sender: UISegmentedControl) {

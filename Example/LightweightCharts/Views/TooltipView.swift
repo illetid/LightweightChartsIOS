@@ -19,7 +19,7 @@ class TooltipView: UIView {
     }
     
     required init?(coder: NSCoder) {
-        return nil
+        fatalError("init(coder:) has not been implemented")
     }
     
     func update(title: String, price: Double, date: String) {

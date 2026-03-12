@@ -5,13 +5,8 @@ class LegendViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var series: AreaSeries!
-    private var crosshairTask: Task<Void, Never>?
     private let legendLabel = UILabel()
     private let legend = "ETC USD 7D VWAP"
-
-    deinit {
-        crosshairTask?.cancel()
-    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -245,21 +240,29 @@ class LegendViewController: UIViewController {
     }
     
     private func setupSubscription() {
-        crosshairTask?.cancel()
-        crosshairTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await parameters in self.chart.crosshairMoveEvents {
-                self.handleCrosshairMove(parameters)
-            }
-        }
+        chart.delegate = self
+        chart.subscribeCrosshairMove()
     }
 
-    private func handleCrosshairMove(_ parameters: MouseEventParams) {
-        if let price = parameters.data(forSeries: series), let value = price.value {
-            legendLabel.text = legend + " \((value * 100).rounded() / 100)"
+}
+
+// MARK: - ChartDelegate
+extension LegendViewController: ChartDelegate {
+    
+    func didClick(onChart chart: ChartApi, parameters: MouseEventParams) {
+        
+    }
+    
+    func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams) {
+        if case let .lineData(price) = parameters.price(forSeries: series) {
+            self.legendLabel.text = self.legend + " \((price.value! * 100).rounded() / 100)"
         } else {
-            legendLabel.text = legend
+            self.legendLabel.text = self.legend
         }
     }
-
+    
+    func didVisibleTimeRangeChange(onChart chart: ChartApi, parameters: TimeRange?) {
+        
+    }
+    
 }

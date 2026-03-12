@@ -5,16 +5,11 @@ class TrackingTooltipViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var series: AreaSeries!
-    private var crosshairTask: Task<Void, Never>?
     private let tooltipView = TooltipView(accentColor: UIColor(red: 1, green: 82/255.0, blue: 82/255.0, alpha: 1))
     private let legend = "Apple Inc."
     
     private var leadingConstraint: NSLayoutConstraint!
     private var bottomConstraint: NSLayoutConstraint!
-
-    deinit {
-        crosshairTask?.cancel()
-    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -240,28 +235,35 @@ class TrackingTooltipViewController: UIViewController {
     }
     
     private func setupSubscription() {
-        crosshairTask?.cancel()
-        crosshairTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            for await parameters in self.chart.crosshairMoveEvents {
-                self.handleCrosshairMove(parameters)
-            }
-        }
+        chart.delegate = self
+        chart.subscribeCrosshairMove()
     }
+    
+}
 
-    private func handleCrosshairMove(_ parameters: MouseEventParams) {
+// MARK: - ChartDelegate
+extension TrackingTooltipViewController: ChartDelegate {
+    
+    func didClick(onChart chart: ChartApi, parameters: MouseEventParams) {
+        
+    }
+    
+    func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams) {
         if case let .businessDayString(date) = parameters.time,
             let point = parameters.point,
-            let price = parameters.data(forSeries: series),
-            let value = price.value {
-
-            tooltipView.update(title: legend, price: value, date: date)
+            case let .lineData(price) = parameters.price(forSeries: series) {
+            
+            tooltipView.update(title: legend, price: price.value!, date: date)
             tooltipView.isHidden = false
             leadingConstraint.constant = CGFloat(point.x) + 16
             bottomConstraint.constant = CGFloat(point.y) - 16
         } else {
-            tooltipView.isHidden = true
+            self.tooltipView.isHidden = true
         }
+    }
+    
+    func didVisibleTimeRangeChange(onChart chart: ChartApi, parameters: TimeRange?) {
+        
     }
     
 }
