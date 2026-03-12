@@ -113,14 +113,20 @@ class PriceScaleRangeViewController: UIViewController {
 
     @objc private func getRange() {
         let priceScale = chart.priceScale(priceScaleId: "right")
-        priceScale.getVisibleRange { range in
-            if let range = range {
+        Task { @MainActor [weak self] in
+            do {
+                let range = try await priceScale.getVisibleRange()
+                guard let range else {
+                    self?.statusLabel.text = "Range: unavailable"
+                    print("[PriceScaleRange] visible range is unavailable")
+                    return
+                }
                 let text = String(format: "Range: %.4f-%.4f", range.from, range.to)
-                self.statusLabel.text = text
+                self?.statusLabel.text = text
                 print("[PriceScaleRange] from: \(range.from), to: \(range.to)")
-            } else {
-                self.statusLabel.text = "Range: unavailable"
-                print("[PriceScaleRange] no visible range")
+            } catch {
+                self?.statusLabel.text = "Range: unavailable"
+                print("[PriceScaleRange] failed to load visible range: \(error)")
             }
         }
     }

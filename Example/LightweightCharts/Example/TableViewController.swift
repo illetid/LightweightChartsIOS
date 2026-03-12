@@ -36,6 +36,7 @@ class TableViewController: UITableViewController {
                 title: "v5 Plugin API",
                 footer: "New v5 plugin API examples. Use these for new code.",
                 rows: [
+                    Row(title: "Async API", subtitle: "Async reads and AsyncStream chart events", viewController: { AsyncAPIViewController() }),
                     Row(title: "Text Watermark", subtitle: "Text watermark plugin", viewController: { CustomWatermarkViewController() }),
                     Row(title: "Image Watermark", subtitle: "Image watermark plugin", viewController: { ImageWatermarkViewController() }),
                     Row(title: "Markers Plugin", subtitle: "Explicit markers plugin API", viewController: { MarkersPluginViewController() }),

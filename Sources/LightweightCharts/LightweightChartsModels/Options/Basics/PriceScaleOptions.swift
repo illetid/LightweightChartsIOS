@@ -7,7 +7,7 @@ import Foundation
  * Percentage turns the percentage mode on.
  * IndexedTo100 turns the "indexed to 100" mode on
  */
-public enum PriceScaleMode: Int, Codable {
+public enum PriceScaleMode: Int, Codable, Sendable {
     case normal
     case logarithmic
     case percentage
@@ -16,59 +16,59 @@ public enum PriceScaleMode: Int, Codable {
 
 // MARK: -
 /** Defines margins of the price scale */
-public struct PriceScaleMargins: Codable {
-    
+public struct PriceScaleMargins: Codable, Sendable {
+
     /** Top margin in percentages. Must be greater or equal to 0 and less than 100 */
     public var top: Double?
-    
+
     /** Bottom margin in percentages. Must be greater or equal to 0 and less than 100 */
     public var bottom: Double?
-    
+
     public init(top: Double? = nil, bottom: Double? = nil) {
         self.top = top
         self.bottom = bottom
     }
-    
+
 }
 
 // MARK: -
 protocol OverlayPriceScaleOptionsProtocol {
-    
+
     /**
      Mode of the price scale
      */
     var mode: PriceScaleMode? { get }
-    
+
     /**
      True inverts the scale. Makes larger values drawn lower. Affects both the price scale and the data on the chart
      */
     var invertScale: Bool? { get }
-    
+
     /**
      True value prevents labels on the price scale from overlapping one another by aligning them one below others
      */
     var alignLabels: Bool? { get }
-    
+
     /**
      Defines price margins for the price scale
      */
     var scaleMargins: PriceScaleMargins? { get }
-    
+
     /**
      Set true to draw a border between the price scale and the chart area
      */
     var borderVisible: Bool? { get }
-    
+
     /**
      Defines a color of the border between the price scale and the chart area. It is ignored if borderVisible is false
      */
     var borderColor: ChartColor? { get }
-    
+
     /**
      Indicates whether the price scale displays only full lines of text or partial lines.
      */
     var entireTextOnly: Bool? { get }
-    
+
     /**
      True value add a small horizontal ticks on price axis labels
      */
@@ -83,29 +83,29 @@ protocol OverlayPriceScaleOptionsProtocol {
      Ensures edge tick marks are visible when possible.
      */
     var ensureEdgeTickMarksVisible: Bool? { get }
-    
+
 }
 
 // MARK: -
 protocol VisiblePriceScaleOptionsProtocol: OverlayPriceScaleOptionsProtocol {
-    
+
     /**
      True makes chart calculate the price range automatically based on the visible data range
      */
     var autoScale: Bool? { get }
-    
+
     /**
      Indicates if this price scale visible. Could not be applied to overlay price scale
      */
     var visible: Bool? { get }
-    
+
 }
 
 // MARK: -
 /**
 Structure that describes price scale options
 */
-public struct PriceScaleOptions: Codable, VisiblePriceScaleOptionsProtocol {
+public struct PriceScaleOptions: Codable, VisiblePriceScaleOptionsProtocol, Sendable {
     
     public var autoScale: Bool?
     public var mode: PriceScaleMode?
@@ -155,7 +155,7 @@ public typealias VisiblePriceScaleOptions = PriceScaleOptions
 /**
  Structure that describes price scale options
  */
-public struct OverlayPriceScaleOptions: Codable, OverlayPriceScaleOptionsProtocol {
+public struct OverlayPriceScaleOptions: Codable, OverlayPriceScaleOptionsProtocol, Sendable {
     
     public var mode: PriceScaleMode?
     public var invertScale: Bool?

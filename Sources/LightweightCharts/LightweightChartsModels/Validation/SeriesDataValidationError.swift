@@ -1,7 +1,7 @@
 import Foundation
 
 /// Errors that can occur during series data validation
-public enum SeriesDataValidationError: LocalizedError, Equatable {
+public enum SeriesDataValidationError: LocalizedError, Equatable, Sendable {
     /// Data array is not in chronological order
     case dataNotChronological(invalidIndex: Int, time: Time, previousTime: Time)
 

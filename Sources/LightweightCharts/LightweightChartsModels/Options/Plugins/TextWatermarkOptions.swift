@@ -6,7 +6,7 @@ import Foundation
  Text watermarks are created via `ChartApi.createTextWatermark(paneIndex:options:)`
  and return a handle that can be used to update or remove the watermark.
  */
-public struct TextWatermarkOptions {
+public struct TextWatermarkOptions: Codable, Sendable {
     /**
      Visibility of the watermark.
      */
@@ -91,7 +91,7 @@ public struct TextWatermarkOptions {
 }
 
 // MARK: - Codable
-extension TextWatermarkOptions: Codable {
+extension TextWatermarkOptions {
 
     enum CodingKeys: String, CodingKey {
         case visible
@@ -116,7 +116,7 @@ extension TextWatermarkOptions {
 /**
  Partial options for updating an existing text watermark.
  */
-public struct TextWatermarkUpdateOptions {
+public struct TextWatermarkUpdateOptions: Codable, Sendable {
     public var visible: Bool?
     public var horizontalAlignment: HorizontalAlignment?
     public var verticalAlignment: VerticalAlignment?
@@ -145,7 +145,7 @@ public struct TextWatermarkUpdateOptions {
 }
 
 // MARK: - Codable
-extension TextWatermarkUpdateOptions: Codable {
+extension TextWatermarkUpdateOptions {
 
     enum CodingKeys: String, CodingKey {
         case visible

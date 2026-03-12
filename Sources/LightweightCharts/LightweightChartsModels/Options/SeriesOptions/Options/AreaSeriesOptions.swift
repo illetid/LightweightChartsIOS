@@ -1,6 +1,6 @@
 import Foundation
 
-public struct AreaSeriesOptions: SeriesOptionsCommon {
+public struct AreaSeriesOptions: SeriesOptionsCommon, Sendable {
     
     public var lastValueVisible: Bool?
     public var title: String?
@@ -20,6 +20,7 @@ public struct AreaSeriesOptions: SeriesOptionsCommon {
     
     public var topColor: ChartColor?
     public var bottomColor: ChartColor?
+    public var relativeGradient: Bool?
     public var invertFilledArea: Bool?
     public var lineColor: ChartColor?
     public var lineStyle: LineStyle?
@@ -50,6 +51,7 @@ public struct AreaSeriesOptions: SeriesOptionsCommon {
                 autoscaleInfoProvider: AutoscaleInfoProvider? = nil,
                 topColor: ChartColor? = nil,
                 bottomColor: ChartColor? = nil,
+                relativeGradient: Bool? = nil,
                 invertFilledArea: Bool? = nil,
                 lineColor: ChartColor? = nil,
                 lineStyle: LineStyle? = nil,
@@ -79,6 +81,7 @@ public struct AreaSeriesOptions: SeriesOptionsCommon {
         self.autoscaleInfoProvider = autoscaleInfoProvider
         self.topColor = topColor
         self.bottomColor = bottomColor
+        self.relativeGradient = relativeGradient
         self.invertFilledArea = invertFilledArea
         self.lineColor = lineColor
         self.lineStyle = lineStyle

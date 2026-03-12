@@ -1,53 +1,62 @@
 import UIKit
 
+@MainActor
 public protocol PaneApi: AnyObject {
 
+    /// Async methods throw `JavaScriptBridgeError` when the bridge context is unavailable,
+    /// the JavaScript evaluation fails, the result shape is invalid, decoding fails, or
+    /// the caller cancels the operation.
+
+    /// The pane index at the time this handle was created.
+    ///
+    /// This value is not updated after pane reordering or removal.
+    /// Use `currentIndex()` to query the live pane position.
     var index: Int { get }
 
-    func size(completion: @escaping (Rectangle?) -> Void)
+    // MARK: - Synchronous methods
 
-    /**
-     * Returns the height of this pane in pixels.
-     * - Parameter completion: the pane height
-     */
-    func getHeight(completion: @escaping (Double?) -> Void)
-    
     /**
      * Sets the height of this pane in pixels.
      * - Parameter height: the desired height
      */
     func setHeight(height: Double)
-    
+
     /**
      * Moves this pane to the specified index.
      * - Parameter paneIndex: the target pane index
      */
     func moveTo(paneIndex: Int)
-    
+
     /**
      * Sets whether this pane should be preserved when it has no series.
      * - Parameter preserve: true to keep the pane even when empty
      */
     func setPreserveEmptyPane(preserve: Bool)
-    
-    /**
-     * Returns whether this pane is preserved when it has no series.
-     * - Parameter completion: true if the pane is preserved when empty
-     */
-    func preserveEmptyPane(completion: @escaping (Bool?) -> Void)
-    
-    /**
-     * Returns the stretch factor of this pane.
-     * - Parameter completion: the stretch factor value
-     */
-    func getStretchFactor(completion: @escaping (Double?) -> Void)
-    
+
     /**
      * Sets the stretch factor of this pane.
      * - Parameter stretchFactor: the desired stretch factor
      */
     func setStretchFactor(stretchFactor: Double)
-    
+
+    @discardableResult
+    func addAreaSeries(options: AreaSeries.Options?) -> AreaSeries
+
+    @discardableResult
+    func addBarSeries(options: BarSeries.Options?) -> BarSeries
+
+    @discardableResult
+    func addCandlestickSeries(options: CandlestickSeries.Options?) -> CandlestickSeries
+
+    @discardableResult
+    func addHistogramSeries(options: HistogramSeries.Options?) -> HistogramSeries
+
+    @discardableResult
+    func addLineSeries(options: LineSeries.Options?) -> LineSeries
+
+    @discardableResult
+    func addBaselineSeries(options: BaselineSeries.Options?) -> BaselineSeries
+
     /**
      * Returns the price scale API for the given price scale ID within this pane.
      * - Parameter priceScaleId: the ID of the price scale
@@ -55,18 +64,63 @@ public protocol PaneApi: AnyObject {
      */
     func priceScale(priceScaleId: String) -> PriceScaleApi
 
+    // MARK: - Async methods (Swift 6)
+
+    /**
+     * Returns the size of this pane.
+     * - Returns: the pane size as a Rectangle
+     */
+    func size() async throws(JavaScriptBridgeError) -> Rectangle
+
+    /**
+     * Returns the height of this pane in pixels.
+     * - Returns: the pane height
+     */
+    func getHeight() async throws(JavaScriptBridgeError) -> Double
+
+    /**
+     * Returns whether this pane is preserved when it has no series.
+     * - Returns: true if the pane is preserved when empty
+     */
+    func preserveEmptyPane() async throws(JavaScriptBridgeError) -> Bool
+
+    /**
+     * Returns the stretch factor of this pane.
+     * - Returns: the stretch factor value
+     */
+    func getStretchFactor() async throws(JavaScriptBridgeError) -> Double
+
+    /**
+     * Returns the current live index of this pane within the chart.
+     * - Returns: the pane's current index
+     */
+    func paneIndex() async throws(JavaScriptBridgeError) -> Int
+
+    func currentIndex() async throws(JavaScriptBridgeError) -> Int
+
 }
 
  /**
  The main interface of a single chart
  */
+@MainActor
 public protocol ChartApi: AnyObject {
-    
+
+    /// Async methods throw `JavaScriptBridgeError` when the bridge context is unavailable,
+    /// the JavaScript evaluation fails, the result shape is invalid, decoding fails, or
+    /// the caller cancels the operation.
+
     /**
      * Subsription delegate for chart events. Weak reference.
      */
     var delegate: ChartDelegate? { get set }
-    
+
+    /// Async event streams. Creating a stream automatically manages the corresponding
+    /// JavaScript subscription for that consumer's lifetime.
+    var clickEvents: AsyncStream<MouseEventParams> { get }
+    var doubleClickEvents: AsyncStream<MouseEventParams> { get }
+    var crosshairMoveEvents: AsyncStream<MouseEventParams> { get }
+
     /**
      * Removes the chart object including all DOM elements.
      * This is an irreversible operation, you cannot do anything with the chart after removing it.
@@ -89,21 +143,21 @@ public protocol ChartApi: AnyObject {
      * - Returns: an interface of the created series
      */
     func addAreaSeries(options: AreaSeries.Options?) -> AreaSeries
-    
+
     /**
      * Creates a bar series with specified parameters
      * - Parameter options: customization parameters of the series being created
      * - Returns: an interface of the created series
      */
     func addBarSeries(options: BarSeries.Options?) -> BarSeries
-    
+
     /**
      * Creates a candlestick series with specified parameters
      * - Parameter options: customization parameters of the series being created
      * - Returns: an interface of the created series
      */
     func addCandlestickSeries(options: CandlestickSeries.Options?) -> CandlestickSeries
-    
+
     /**
      * Creates a histogram series with specified parameters
      * - Parameter options: customization parameters of the series being created
@@ -117,7 +171,7 @@ public protocol ChartApi: AnyObject {
      * - Returns: an interface of the created series
      */
     func addLineSeries(options: LineSeries.Options?) -> LineSeries
-    
+
     /**
      * Creates a baseline series with specified parameters.
      * - Parameter options: customization parameters of the series being created
@@ -180,12 +234,8 @@ public protocol ChartApi: AnyObject {
     /**
      * Adds a new pane to the chart.
      */
-    func addPane()
-
-    /**
-     * Returns all pane APIs currently attached to the chart.
-     */
-    func panes(completion: @escaping ([PaneApi]) -> Void)
+    @discardableResult
+    func addPane(preserveEmptyPane: Bool?) -> PaneApi
 
     /**
      * Removes pane at a given index.
@@ -203,14 +253,14 @@ public protocol ChartApi: AnyObject {
      * - Parameter seriesApi: Series to remove
      */
     func removeSeries<T: SeriesApi & SeriesObject>(seriesApi: T)
-    
+
     // MARK: - Subsriptions methods
     /**
      * Adds a subscription to mouse click event
      * - Parameter handler: handler (function) to be called on mouse click
      */
     func subscribeClick()
-    
+
     /**
      * Removes mouse click subscription
      * - Parameter handler: previously subscribed handler
@@ -249,18 +299,13 @@ public protocol ChartApi: AnyObject {
      */
     func clearCrosshairPosition()
 
-    /**
-     * Returns pane size for the specified pane index.
-     */
-    func paneSize(paneIndex: Int, completion: @escaping (Rectangle?) -> Void)
-
     // MARK: - Other APIs and options methods
     /**
      * Returns API to manipulate the price scale
      * - Parameter priceScaleID: id of scale to access to
      * - Returns: target API
      */
-    func priceScale(priceScaleId: String?) -> PriceScaleApi
+    func priceScale(priceScaleId: String?, paneIndex: Int?) -> PriceScaleApi
 
     /**
      * Returns API to manipulate the time scale
@@ -273,29 +318,6 @@ public protocol ChartApi: AnyObject {
      * - Parameter options: any subset of chart options
      */
     func applyOptions(options: ChartOptions)
-
-    /**
-     * Returns currently applied options
-     * - Parameter completion: full set of currently applied options, including defaults
-     */
-    func options(completion: @escaping (ChartOptions?) -> Void)
-
-    /**
-     * Returns whether auto-size is currently active for the chart.
-     * - Parameter completion: true when auto-size is active
-     */
-    func autoSizeActive(completion: @escaping (Bool?) -> Void)
-
-    /**
-     * Make a screenshot of the chart with all the elements excluding crosshair.
-     * - Parameter completion: a canvas with the chart drawn on
-     */
-    func takeScreenshot(completion: @escaping (UIImage?) -> Void)
-
-    /**
-     * Make a screenshot of the chart with optional rendering flags.
-     */
-    func takeScreenshot(addTopLayer: Bool?, includeCrosshair: Bool?, completion: @escaping (UIImage?) -> Void)
 
     // MARK: - Watermark plugin methods
 
@@ -316,15 +338,63 @@ public protocol ChartApi: AnyObject {
      */
     func createImageWatermark(paneIndex: Int, imageUrl: String, options: ImageWatermarkOptions) -> ImageWatermark
 
+    // MARK: - Async methods (Swift 6)
+
+    /**
+     * Returns all pane APIs currently attached to the chart.
+     * - Returns: array of pane APIs
+     */
+    func panes() async throws(JavaScriptBridgeError) -> [PaneApi]
+
+    /**
+     * Returns pane size for the specified pane index.
+     * - Parameter paneIndex: the index of the pane
+     * - Returns: the pane size as a Rectangle
+     */
+    func paneSize(paneIndex: Int) async throws(JavaScriptBridgeError) -> Rectangle
+
+    /**
+     * Returns currently applied options
+     * - Returns: full set of currently applied options, including defaults
+     */
+    func options() async throws(JavaScriptBridgeError) -> ChartOptions
+
+    /**
+     * Returns whether auto-size is currently active for the chart.
+     * - Returns: true when auto-size is active
+     */
+    func autoSizeActive() async throws(JavaScriptBridgeError) -> Bool
+
+    /**
+     * Make a screenshot of the chart with optional rendering flags.
+     * - Parameters:
+     *   - addTopLayer: whether to add the top layer
+     *   - includeCrosshair: whether to include the crosshair
+     * - Returns: a UIImage with the chart drawn on it
+     */
+    func takeScreenshot(addTopLayer: Bool?, includeCrosshair: Bool?) async throws(JavaScriptBridgeError) -> UIImage
+
 }
 
 // MARK: -
 public extension ChartApi {
 
-    func takeScreenshot(completion: @escaping (UIImage?) -> Void) {
-        takeScreenshot(addTopLayer: nil, includeCrosshair: nil, completion: completion)
+    func addPane() -> PaneApi {
+        addPane(preserveEmptyPane: nil)
     }
-    
+
+    func priceScale(priceScaleId: String?) -> PriceScaleApi {
+        priceScale(priceScaleId: priceScaleId, paneIndex: nil)
+    }
+
+    /**
+     * Make a screenshot of the chart with all the elements excluding crosshair.
+     * - Returns: a UIImage with the chart drawn on it
+     */
+    func takeScreenshot() async throws(JavaScriptBridgeError) -> UIImage {
+        try await takeScreenshot(addTopLayer: nil, includeCrosshair: nil)
+    }
+
     /**
      * Sets fixed size of the chart. By default chart takes up 100% of its container
      * - Parameter height: target height of the chart
@@ -335,7 +405,7 @@ public extension ChartApi {
     func resize(width: CGFloat, height: CGFloat, forceRepaint: Bool?) {
         self.resize(width: Double(width), height: Double(height), forceRepaint: forceRepaint)
     }
-    
+
     /**
      * Sets fixed size of the chart. By default chart takes up 100% of its container
      * - Parameter height: target height of the chart
@@ -346,5 +416,12 @@ public extension ChartApi {
     func resize(width: Int, height: Int, forceRepaint: Bool?) {
         self.resize(width: Double(width), height: Double(height), forceRepaint: forceRepaint)
     }
-    
+
+}
+
+public extension PaneApi {
+
+    func paneIndex() async throws(JavaScriptBridgeError) -> Int {
+        try await currentIndex()
+    }
 }

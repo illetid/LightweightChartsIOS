@@ -18,6 +18,7 @@ import Foundation
 
  Use `detach()` to remove the plugin from the series when no longer needed.
  */
+@MainActor
 public class UpDownMarkersPlugin<Series>: SeriesPluginAdapter<Series>, PluginWithOptions
 where Series: UpDownMarkersSupported {
 
@@ -53,12 +54,9 @@ where Series: UpDownMarkersSupported {
             script = "window['\(jsName)'] = LightweightCharts.createUpDownMarkers(\(series.jsName), \(optionsJson));"
         }
         
+        evaluateScript(script)
         if let data = data {
-            evaluateScript(script) { [weak self] _, _ in
-                self?.setMarkers(data)
-            }
-        } else {
-            evaluateScript(script, completion: nil)
+            setMarkers(data)
         }
     }
 
@@ -72,7 +70,7 @@ where Series: UpDownMarkersSupported {
         guard !isDetached else { return }
 
         let script = "\(jsName).detach();"
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
 
         super.detach()
     }
@@ -94,7 +92,7 @@ where Series: UpDownMarkersSupported {
             \(jsName).setData(\(data.jsonString));
         }
         """
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
     }
 
     /// Sets markers on the plugin.
@@ -117,7 +115,7 @@ where Series: UpDownMarkersSupported {
         guard !isDetached, series != nil else { return }
 
         let script = "\(jsName).setData(\(data.jsonString));"
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
     }
 
     /// Updates the plugin with a single series data point.
@@ -132,7 +130,7 @@ where Series: UpDownMarkersSupported {
     public func update<T: SingleValueSeriesData>(_ bar: T, isUpdate: Bool? = nil) {
         guard !isDetached, series != nil else { return }
 
-        let isUpdateJson = isUpdate != nil ? ", \(isUpdate!)" : ""
+        let isUpdateJson = isUpdate.map { ", \($0 ? "true" : "false")" } ?? ""
         let script = """
         try {
             if (typeof \(jsName).update === 'function') {
@@ -144,7 +142,7 @@ where Series: UpDownMarkersSupported {
             console.warn('UpDownMarkersPlugin.update(data) failed:', e);
         }
         """
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
     }
 
     /// Updates the plugin with a single marker.
@@ -167,7 +165,7 @@ where Series: UpDownMarkersSupported {
             console.warn('UpDownMarkersPlugin.update(marker) failed:', e);
         }
         """
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
     }
 
     /// Clears all markers from the plugin.
@@ -177,12 +175,25 @@ where Series: UpDownMarkersSupported {
         guard !isDetached, series != nil else { return }
 
         let script = "\(jsName).clearMarkers();"
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
+    }
+
+    /// Returns the current markers displayed on the series.
+    public func markers() async throws(JavaScriptBridgeError) -> [SeriesUpDownMarker] {
+        guard !isDetached else {
+            throw JavaScriptBridgeError.evaluationFailed(script: "\(jsName).markers();", message: "Plugin has been detached.")
+        }
+
+        let script = "\(jsName).markers();"
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     /// Returns the current markers displayed on the series.
     ///
     /// - Parameter completion: Completion handler with the array of markers.
+    /// - Deprecated: Use `markers() async throws -> [SeriesUpDownMarker]` instead.
+    ///   Completion-handler API will be removed in a future major release.
+    @available(*, deprecated, message: "Use markers() async throws -> [SeriesUpDownMarker] instead. Completion-handler API will be removed in a future major release.")
     public func getMarkers(completion: @escaping ([SeriesUpDownMarker]?) -> Void) {
         guard !isDetached else {
             completion(nil)
@@ -208,6 +219,6 @@ where Series: UpDownMarkersSupported {
 
         self.options = options
         let script = "\(jsName).applyOptions(\(options.jsonString()));"
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
     }
 }

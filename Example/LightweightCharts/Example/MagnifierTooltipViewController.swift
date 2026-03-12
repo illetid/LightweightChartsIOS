@@ -5,10 +5,15 @@ class MagnifierTooltipViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var series: AreaSeries!
+    private var crosshairTask: Task<Void, Never>?
     private let tooltipView = TooltipView(accentColor: UIColor(red: 0, green: 120/255.0, blue: 1, alpha: 0.9))
     private let legend = "⬤ AERO"
     
     private var leadingConstraint: NSLayoutConstraint!
+
+    deinit {
+        crosshairTask?.cancel()
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -402,32 +407,28 @@ class MagnifierTooltipViewController: UIViewController {
     }
     
     private func setupSubscription() {
-        chart.delegate = self
-        chart.subscribeCrosshairMove()
+        crosshairTask?.cancel()
+        crosshairTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await parameters in self.chart.crosshairMoveEvents {
+                self.handleCrosshairMove(parameters)
+            }
+        }
     }
-    
-}
 
-// MARK: - ChartDelegate
-extension MagnifierTooltipViewController: ChartDelegate {
-    
-    func didClick(onChart chart: ChartApi, parameters: MouseEventParams) {
-        
-    }
-    
-    func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams) {
+    private func handleCrosshairMove(_ parameters: MouseEventParams) {
         if case let .businessDayString(data) = parameters.time,
             let point = parameters.point,
             case let .lineData(price) = parameters.price(forSeries: series) {
-            
+
             let dateString = data
             tooltipView.update(title: legend, price: price.value!, date: dateString)
             tooltipView.isHidden = false
-            
+
             let x = CGFloat(point.x)
             let targetConstant = x - tooltipView.frame.width * 0.5
-            let maximumOffset = self.chart.frame.width - tooltipView.frame.width - 50
-            
+            let maximumOffset = chart.frame.width - tooltipView.frame.width - 50
+
             switch targetConstant {
             case ...0:
                 leadingConstraint.constant = 0
@@ -437,12 +438,8 @@ extension MagnifierTooltipViewController: ChartDelegate {
                 leadingConstraint.constant = targetConstant
             }
         } else {
-            self.tooltipView.isHidden = true
+            tooltipView.isHidden = true
         }
-    }
-    
-    func didVisibleTimeRangeChange(onChart chart: ChartApi, parameters: TimeRange?) {
-        
     }
     
 }

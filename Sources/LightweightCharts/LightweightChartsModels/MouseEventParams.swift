@@ -2,21 +2,21 @@
 import Foundation
 
 // MARK: -
-public enum EventTime {
+public enum EventTime: Sendable {
     case utc(timestamp: Double)
     case businessDay(BusinessDay)
     case businessDayString(String)
 }
 
 // MARK: -
-public enum EventPrices {
+public enum EventPrices: Sendable {
     case barData(BarData)
     case lineData(LineData)
     case none
 }
 
 // MARK: -
-public struct TouchMouseEventData: Codable {
+public struct TouchMouseEventData: Codable, Sendable {
     
     /**
      * The X coordinate of the mouse pointer in local (DOM content) coordinates.
@@ -110,7 +110,7 @@ public struct TouchMouseEventData: Codable {
 
 
 // MARK: -
-public struct MouseEventParams: Codable {
+public struct MouseEventParams: Codable, Sendable {
     
     public let time: EventTime?
     public let logical: Int?

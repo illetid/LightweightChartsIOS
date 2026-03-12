@@ -1,6 +1,8 @@
 import Foundation
 import UIKit
 
+// UIColor is reference-typed and imported without Sendable guarantees, but this wrapper is
+// used as an immutable RGBA value container throughout the public options surface.
 public final class ChartColor: UIColor, @unchecked Sendable {
     
     public convenience init(_ color: UIColor) {

@@ -4,6 +4,7 @@ enum Subscription: String {
     case click = "ClickSubscriber"
     case dblClick = "DblClickSubscriber"
     case crosshairMove = "CrosshairMoveSubscriber"
+    case dataChanged = "DataChangedSubscriber"
     case visibleTimeRangeChange = "VisibleTimeRangeChangeSubscriber"
     case visibleLogicalRangeChange = "VisibleLogicalRangeChangeSubscriber"
     case timeScaleSizeChange = "TimeScaleSizeChangeSubscriber"
@@ -16,6 +17,8 @@ enum Subscription: String {
             return "DblClick"
         case .crosshairMove:
             return "CrosshairMove"
+        case .dataChanged:
+            return "DataChanged"
         case .visibleTimeRangeChange:
             return "VisibleTimeRangeChange"
         case .visibleLogicalRangeChange:

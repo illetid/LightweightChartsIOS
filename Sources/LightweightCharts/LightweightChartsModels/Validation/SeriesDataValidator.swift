@@ -1,7 +1,7 @@
 import Foundation
 
 /// Protocol for validating series data before rendering
-public protocol SeriesDataValidator {
+public protocol SeriesDataValidator: Sendable {
 
     /// Validates an array of data points
     /// - Parameter data: The data array to validate
@@ -17,7 +17,7 @@ public protocol SeriesDataValidator {
 }
 
 /// Default validator for all series types
-public struct DefaultSeriesDataValidator: SeriesDataValidator {
+public struct DefaultSeriesDataValidator: SeriesDataValidator, Sendable {
 
     public init() {}
 

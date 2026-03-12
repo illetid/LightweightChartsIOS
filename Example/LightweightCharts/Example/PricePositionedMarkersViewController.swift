@@ -84,7 +84,7 @@ class PricePositionedMarkersViewController: UIViewController {
                 time: data[10].time,
                 position: .atPriceTop,
                 shape: .arrowDown,
-                color: ChartColor(.red),
+                color: ChartColor(UIColor.red),
                 text: "Sell @ 57.08",
                 price: 57.08
             ),
@@ -92,7 +92,7 @@ class PricePositionedMarkersViewController: UIViewController {
                 time: data[15].time,
                 position: .atPriceBottom,
                 shape: .arrowUp,
-                color: ChartColor(.green),
+                color: ChartColor(UIColor.green),
                 text: "Buy @ 57.94",
                 price: 57.94
             ),
@@ -100,7 +100,7 @@ class PricePositionedMarkersViewController: UIViewController {
                 time: data[22].time,
                 position: .atPriceMiddle,
                 shape: .circle,
-                color: ChartColor(.blue),
+                color: ChartColor(UIColor.blue),
                 text: "Target @ 60.00",
                 price: 60.00
             ),
@@ -109,14 +109,14 @@ class PricePositionedMarkersViewController: UIViewController {
                 time: data[5].time,
                 position: .aboveBar,
                 shape: .arrowDown,
-                color: ChartColor(.orange),
+                color: ChartColor(UIColor.orange),
                 text: "Above"
             ),
             SeriesMarker(
                 time: data[25].time,
                 position: .belowBar,
                 shape: .arrowUp,
-                color: ChartColor(.purple),
+                color: ChartColor(UIColor.purple),
                 text: "Below"
             )
         ]

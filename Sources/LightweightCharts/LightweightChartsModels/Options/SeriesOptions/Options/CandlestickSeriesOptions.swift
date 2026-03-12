@@ -3,7 +3,7 @@ import Foundation
 /**
  Structure describing a drawing style of the candlestick chart
  */
-public struct CandlestickSeriesOptions: SeriesOptionsCommon {
+public struct CandlestickSeriesOptions: SeriesOptionsCommon, Sendable {
     
     public var lastValueVisible: Bool?
     public var title: String?

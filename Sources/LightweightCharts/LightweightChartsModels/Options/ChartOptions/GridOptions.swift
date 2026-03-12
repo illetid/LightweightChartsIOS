@@ -3,7 +3,7 @@ import Foundation
 /**
  Structure describing grid options
  */
-public struct GridOptions {
+public struct GridOptions: Sendable {
     
     /**
      Vertical grid line options

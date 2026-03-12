@@ -6,7 +6,7 @@ import Foundation
  Image watermarks are created via `ChartApi.createImageWatermark(paneIndex:options:)`
  and return a handle that can be used to update or remove the watermark.
  */
-public struct ImageWatermarkOptions {
+public struct ImageWatermarkOptions: Codable, Sendable {
 
     /**
      Transparency (alpha) value for the watermark image.
@@ -48,7 +48,7 @@ public struct ImageWatermarkOptions {
 }
 
 // MARK: - Codable
-extension ImageWatermarkOptions: Codable {
+extension ImageWatermarkOptions {
 
     enum CodingKeys: String, CodingKey {
         case alpha
@@ -73,7 +73,7 @@ extension ImageWatermarkOptions {
 /**
  Partial options for updating an existing image watermark.
  */
-public struct ImageWatermarkUpdateOptions {
+public struct ImageWatermarkUpdateOptions: Codable, Sendable {
     public var alpha: Double?
     public var padding: Int?
     public var maxWidth: Double?
@@ -102,7 +102,7 @@ public struct ImageWatermarkUpdateOptions {
 }
 
 // MARK: - Codable
-extension ImageWatermarkUpdateOptions: Codable {
+extension ImageWatermarkUpdateOptions {
 
     enum CodingKeys: String, CodingKey {
         case alpha

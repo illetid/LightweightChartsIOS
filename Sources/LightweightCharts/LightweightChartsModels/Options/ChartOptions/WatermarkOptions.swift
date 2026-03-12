@@ -1,13 +1,13 @@
 import Foundation
 
-public enum HorizontalAlignment: String, Codable {
+public enum HorizontalAlignment: String, Codable, Sendable {
     case left
     case center
     case right
 }
 
 // MARK: -
-public enum VerticalAlignment: String, Codable {
+public enum VerticalAlignment: String, Codable, Sendable {
     case top
     case center
     case bottom
@@ -23,7 +23,7 @@ public enum VerticalAlignment: String, Codable {
 @available(*, deprecated, message: "Watermark is no longer a chart option in v5. Use chart.createTextWatermark(paneIndex:options:) instead. See MIGRATION_V4_TO_V5.md for details.")
 public typealias WatermarkOptions = DeprecatedWatermarkOptions
 
-public struct DeprecatedWatermarkOptions {
+public struct DeprecatedWatermarkOptions: Sendable {
     
     /**
      Color of the watermark

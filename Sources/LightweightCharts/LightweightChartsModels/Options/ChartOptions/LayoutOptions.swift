@@ -3,7 +3,7 @@ import Foundation
 /**
  Structure describing layout options
  */
-public struct LayoutOptions: Codable {
+public struct LayoutOptions: Codable, Sendable {
     
     public var background: SurfaceColor?
     

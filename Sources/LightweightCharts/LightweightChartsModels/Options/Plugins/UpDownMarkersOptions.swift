@@ -7,7 +7,7 @@ import Foundation
  upward or downward price movements. Use this options type when creating or configuring
  an up-down markers plugin via `SeriesApi.createUpDownMarkersPlugin(options:)`.
  */
-public struct UpDownMarkersOptions {
+public struct UpDownMarkersOptions: Codable, Sendable {
 
     /**
      Color used for positive (upward) markers.
@@ -42,7 +42,7 @@ public struct UpDownMarkersOptions {
 }
 
 // MARK: - Codable
-extension UpDownMarkersOptions: Codable {
+extension UpDownMarkersOptions {
 
     enum CodingKeys: String, CodingKey {
         case positiveColor

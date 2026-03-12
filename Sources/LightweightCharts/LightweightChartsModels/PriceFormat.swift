@@ -1,6 +1,6 @@
 import Foundation
 
-public enum PriceFormat {
+public enum PriceFormat: Sendable {
     case builtIn(BuiltInPriceFormat)
     case custom(CustomPriceFormat)
 }
@@ -38,7 +38,7 @@ extension PriceFormat: Codable {
 
 // MARK: -
 /// Enum of possible modes of price formatting
-public enum PriceFormatBuilInType: String, Codable {
+public enum PriceFormatBuilInType: String, Codable, Sendable {
     /// `price` is the most common choice; it allows customization of precision and rounding of prices
     case price
     /// `volume` uses abbreviation for formatting prices like '1.2K' or '12.67M'
@@ -59,7 +59,7 @@ public enum PriceFormatBuilInType: String, Codable {
  *
  * `minMove = 0.05`, precision is not specified. Prices will change like 1.10, 1.15, 1.20
  */
-public struct BuiltInPriceFormat: Codable {
+public struct BuiltInPriceFormat: Codable, Sendable {
     
     /**
      *  Enum of possible modes of price formatting
@@ -95,7 +95,7 @@ public struct BuiltInPriceFormat: Codable {
 }
 
 // MARK: -
-public struct CustomPriceFormat {
+public struct CustomPriceFormat: Sendable {
     
     private let type = "custom"
     

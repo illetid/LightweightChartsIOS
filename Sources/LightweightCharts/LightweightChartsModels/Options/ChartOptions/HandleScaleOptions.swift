@@ -2,7 +2,7 @@
 import Foundation
 
 /// Structure that describes scaling behavior
-public struct HandleScaleOptions: Codable {
+public struct HandleScaleOptions: Codable, Sendable {
     
     public var mouseWheel: Bool?
     public var pinch: Bool?

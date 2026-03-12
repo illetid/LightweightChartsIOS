@@ -1,6 +1,6 @@
 import Foundation
 
-public enum Time: Equatable {
+public enum Time: Equatable, Sendable {
     case utc(timestamp: Double)
     case businessDay(BusinessDay)
     case string(String)

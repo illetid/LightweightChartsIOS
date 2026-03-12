@@ -3,7 +3,7 @@ import Foundation
 /**
  You can disable or enable kinetic scroll via mouse or via touch gestures separately
  */
-public struct KineticScrollOptions: Codable {
+public struct KineticScrollOptions: Codable, Sendable {
     
     /**
      If true, kinetic scroll is enabled via touch gestures

@@ -1,6 +1,6 @@
 import Foundation
 
-public enum SeriesMarkerPosition: String, Codable {
+public enum SeriesMarkerPosition: String, Codable, Sendable {
     case aboveBar
     case belowBar
     case inBar
@@ -10,7 +10,7 @@ public enum SeriesMarkerPosition: String, Codable {
 }
 
 // MARK: -
-public enum SeriesMarkerShape: String, Codable {
+public enum SeriesMarkerShape: String, Codable, Sendable {
     case circle
     case square
     case arrowUp
@@ -18,8 +18,8 @@ public enum SeriesMarkerShape: String, Codable {
 }
 
 // MARK: -
-public struct SeriesMarker: Codable {
-    
+public struct SeriesMarker: Codable, Sendable {
+
     public var time: Time
     public var position: SeriesMarkerPosition
     public var shape: SeriesMarkerShape
@@ -28,7 +28,7 @@ public struct SeriesMarker: Codable {
     public var text: String?
     public var size: Double?
     public var price: Double?
-    
+
     public init(time: Time,
                 position: SeriesMarkerPosition,
                 shape: SeriesMarkerShape,
@@ -46,5 +46,5 @@ public struct SeriesMarker: Codable {
         self.size = size
         self.price = price
     }
-    
+
 }

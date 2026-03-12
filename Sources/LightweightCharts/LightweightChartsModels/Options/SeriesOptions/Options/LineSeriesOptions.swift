@@ -1,6 +1,6 @@
 import Foundation
 
-public struct LineSeriesOptions: SeriesOptionsCommon {
+public struct LineSeriesOptions: SeriesOptionsCommon, Sendable {
     
     public var lastValueVisible: Bool?
     public var title: String?

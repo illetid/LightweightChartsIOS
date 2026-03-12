@@ -3,7 +3,7 @@ import Foundation
 /**
  * Represents a type of a base value of baseline series type.
  */
-public enum BaseValueType {
+public enum BaseValueType: Sendable {
     case baseValuePrice(BaseValuePrice)
 }
 
@@ -18,16 +18,16 @@ enum CodingKeys: String, CodingKey {
 extension BaseValueType: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         let price = try container.decode(Double.self, forKey: .price)
         let type = try container.decode(BaseValuePriceType.self, forKey: .type)
-        
+
         self = .baseValuePrice(BaseValuePrice(price: price, type: type))
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
+
         switch self {
         case let .baseValuePrice(valuePrice: valuePrice):
             try container.encode(valuePrice.price, forKey: .price)
@@ -41,18 +41,18 @@ extension BaseValueType: Codable {
 /**
  * Represents a type of priced base value of baseline series type.
  */
-public struct BaseValuePrice {
-    
+public struct BaseValuePrice: Sendable {
+
     /**
      * Price value.
      */
     public var price: Double
-    
+
     /**
      * Distinguished type value.
      */
     public var type: BaseValuePriceType
-    
+
     public init(price: Double, type: BaseValuePriceType) {
         self.price = price
         self.type = type
@@ -60,6 +60,6 @@ public struct BaseValuePrice {
 }
 
 // MARK: - BaseValuePriceType
-public enum BaseValuePriceType: String, Codable {
+public enum BaseValuePriceType: String, Codable, Sendable {
     case price = "price"
 }

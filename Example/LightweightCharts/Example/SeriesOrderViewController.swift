@@ -155,14 +155,12 @@ class SeriesOrderViewController: UIViewController {
     }
 
     private func refreshOrderStatus() {
-        lineSeries.seriesOrder { [weak self] lineOrder in
-            self?.areaSeries.seriesOrder { [weak self] areaOrder in
-                self?.baselineSeries.seriesOrder { [weak self] baselineOrder in
-                    DispatchQueue.main.async {
-                        self?.statusLabel.text = "Orders: L=\(lineOrder ?? -1), A=\(areaOrder ?? -1), B=\(baselineOrder ?? -1)"
-                    }
-                }
-            }
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            let lineOrder = (try? await self.lineSeries.seriesOrder()) ?? -1
+            let areaOrder = (try? await self.areaSeries.seriesOrder()) ?? -1
+            let baselineOrder = (try? await self.baselineSeries.seriesOrder()) ?? -1
+            self.statusLabel.text = "Orders: L=\(lineOrder), A=\(areaOrder), B=\(baselineOrder)"
         }
     }
 }

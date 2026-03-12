@@ -3,7 +3,7 @@ import Foundation
 /**
  Structure describing a crosshair line (vertical or horizontal)
  */
-public struct CrosshairLineOptions: Codable {
+public struct CrosshairLineOptions: Codable, Sendable {
     
     /**
      Color of a certain crosshair line

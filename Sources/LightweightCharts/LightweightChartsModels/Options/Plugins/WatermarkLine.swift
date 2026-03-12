@@ -3,7 +3,7 @@ import Foundation
 /**
  A single line of text in a text watermark primitive.
  */
-public struct WatermarkLine {
+public struct WatermarkLine: Codable, Sendable {
     /**
      Text content of the line.
      */
@@ -52,7 +52,7 @@ public struct WatermarkLine {
 }
 
 // MARK: - Codable
-extension WatermarkLine: Codable {
+extension WatermarkLine {
 
     enum CodingKeys: String, CodingKey {
         case text

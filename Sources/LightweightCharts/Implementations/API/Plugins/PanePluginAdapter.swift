@@ -9,14 +9,12 @@ import Foundation
 /// 1. Call the designated initializer with the chart reference and pane index
 /// 2. Implement any plugin-specific functionality
 /// 3. Optionally override `detach()` if custom cleanup is needed
+@MainActor
 open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
 
     // MARK: - PanePlugin Conformance
 
-    /// The index of the pane this plugin is attached to.
-    ///
-    /// Pane indices correspond to the chart's `panes()` array,
-    /// where 0 is the main pane.
+    /// Snapshot of the pane index this plugin was created with.
     public let paneIndex: Int
 
     // MARK: - Properties
@@ -29,6 +27,9 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
 
     /// The JavaScript variable name of the chart.
     private let chartJsName: String
+
+    /// The JavaScript variable name of the stable pane handle.
+    private let paneJsName: String
 
     /// The JavaScript evaluator context for script execution.
     /// Accessible to subclasses for script evaluation.
@@ -55,6 +56,18 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
         self.paneIndex = paneIndex
         self._context = context
         self.jsName = PanePluginAdapter.makeJSName()
+        self.paneJsName = "pane" + .uniqueString
+
+        let script = """
+        (function() {
+            var panes = \(chartJsName).panes();
+            if (!panes || !panes[\(paneIndex)]) {
+                throw new Error('Invalid pane index: \(paneIndex). Pane does not exist in this chart.');
+            }
+            window['\(paneJsName)'] = panes[\(paneIndex)];
+        })();
+        """
+        context.submitScript(script)
     }
 
     // MARK: - Plugin Conformance
@@ -75,13 +88,16 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
     /// Evaluates JavaScript code in the chart context.
     ///
     /// - Parameter script: The JavaScript code to evaluate.
-    /// - Parameter completion: Optional completion handler with result and error.
-    func evaluateScript(_ script: String, completion: ((Any?, Error?) -> Void)? = nil) {
-        guard let context = _context else {
-            completion?(nil, nil)
-            return
+    func evaluateScript(_ script: String) {
+        guard let context = _context else { return }
+        context.submitScript(script)
+    }
+
+    func requireContext() throws(JavaScriptBridgeError) -> JavaScriptEvaluator {
+        guard let _context else {
+            throw JavaScriptBridgeError.contextUnavailable
         }
-        context.evaluateScript(script, completion: completion)
+        return _context
     }
 
     /// Evaluates JavaScript code and decodes the result as a specified type.
@@ -96,10 +112,16 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
         completion: @escaping (Result<T, Error>) -> Void
     ) {
         guard let context = _context else {
-            completion(.failure(NSError(domain: "LightweightCharts", code: 1, userInfo: [NSLocalizedDescriptionKey: "JavaScript context is no longer available."])))
+            completion(.failure(JavaScriptBridgeError.contextUnavailable))
             return
         }
-        context.evaluate(script: script, resultType: resultType, completion: completion)
+
+        if let callbackContext = context as? JavaScriptCallbackEvaluator {
+            callbackContext.evaluate(script: script, resultType: resultType, completion: completion)
+            return
+        }
+
+        completion(.failure(JavaScriptBridgeError.contextUnavailable))
     }
 
     /// Evaluates JavaScript code and decodes the result as a specified type.
@@ -115,7 +137,20 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
             completion(nil)
             return
         }
-        context.decodedResult(forScript: script, completion: completion)
+
+        guard let callbackContext = context as? JavaScriptCallbackEvaluator else {
+            completion(nil)
+            return
+        }
+
+        callbackContext.decodedResult(forScript: script) { (result: Result<T, Error>) in
+            switch result {
+            case .success(let value):
+                completion(value)
+            case .failure:
+                completion(nil)
+            }
+        }
     }
 
     /// Returns a JavaScript expression that accesses the pane this plugin is attached to.
@@ -125,7 +160,47 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
     ///
     /// - Returns: A JavaScript expression for accessing the pane.
     func paneExpression() -> String {
-        return "\(chartJsName).panes()[\(paneIndex)]"
+        return "window['\(paneJsName)']"
+    }
+
+    func paneIndexLookupExpression() -> String {
+        """
+        (function() {
+            var panes = \(chartJsName).panes();
+            return panes.findIndex(function(pane) { return pane === \(paneExpression()); });
+        })()
+        """
+    }
+
+    /// Returns a guarded script that resolves the plugin pane and creates a JS-backed object.
+    ///
+    /// - Parameters:
+    ///   - objectName: The global window key used to store the created object.
+    ///   - factoryCall: The JS factory call that creates the pane-scoped object.
+    /// - Returns: A self-contained script that validates the pane and stores the result.
+    func paneScopedCreationScript(objectName: String, factoryCall: String) -> String {
+        """
+        (function() {
+            var pane = \(paneExpression());
+            var paneIndex = \(paneIndexLookupExpression());
+            if (!pane || paneIndex === -1) {
+                throw new Error('Pane is no longer attached to this chart.');
+            }
+            window['\(objectName)'] = \(factoryCall);
+        })();
+        """
+    }
+
+    public func currentPaneIndex() async throws(JavaScriptBridgeError) -> Int {
+        let context = try requireContext()
+        let paneIndex = try await context.evaluate(script: paneIndexLookupExpression(), resultType: Int.self)
+        if paneIndex == -1 {
+            throw JavaScriptBridgeError.evaluationFailed(
+                script: paneIndexLookupExpression(),
+                message: "Pane is no longer attached to this chart."
+            )
+        }
+        return paneIndex
     }
 
     // MARK: - Private Methods

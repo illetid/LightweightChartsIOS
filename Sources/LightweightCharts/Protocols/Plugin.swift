@@ -8,6 +8,7 @@ import Foundation
  Plugins are attachable objects that extend chart functionality
  and can be detached (removed) when no longer needed.
  */
+@MainActor
 public protocol Plugin: AnyObject {
 
     /**
@@ -27,6 +28,7 @@ public protocol Plugin: AnyObject {
  Plugins conforming to this protocol can have their options
  modified after creation without requiring detachment and recreation.
  */
+@MainActor
 public protocol PluginWithOptions: Plugin {
 
     /// The options type for this plugin
@@ -50,6 +52,7 @@ public protocol PluginWithOptions: Plugin {
  Series plugins are created on and operate within the context
  of a specific series instance.
  */
+@MainActor
 public protocol SeriesPlugin: Plugin {
 
     /**
@@ -74,16 +77,24 @@ public protocol SeriesPlugin: Plugin {
 /**
  Protocol for plugins attached to a specific chart pane.
 
- Pane plugins are associated with a specific pane index
+ Pane plugins are associated with a specific pane
  within the chart's pane hierarchy.
  */
+@MainActor
 public protocol PanePlugin: Plugin {
 
     /**
-     The index of the pane this plugin is attached to.
+     The pane index at the time this plugin was created.
 
-     Pane indices correspond to the chart's `panes()` array,
-     where 0 is the main pane.
+     This snapshot is not updated after pane reordering or removal.
+     Use `currentPaneIndex()` to query the live pane position.
      */
     var paneIndex: Int { get }
+
+    /**
+     Returns the current live index of the pane this plugin is attached to.
+
+     - Returns: The pane's current index in the chart's `panes()` array.
+     */
+    func currentPaneIndex() async throws(JavaScriptBridgeError) -> Int
 }

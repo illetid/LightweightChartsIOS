@@ -3,7 +3,7 @@ import Foundation
 /**
  * Represents style options for a baseline series.
  */
-public struct BaselineSeriesOptions: SeriesOptionsCommon {
+public struct BaselineSeriesOptions: SeriesOptionsCommon, Sendable {
     public var lastValueVisible: Bool?
     public var title: String?
     public var priceScaleId: String?
@@ -24,6 +24,11 @@ public struct BaselineSeriesOptions: SeriesOptionsCommon {
      * Base value of the series.
      */
     public var baseValue: BaseValueType?
+
+    /**
+     * Whether the gradient should be relative to the base value and visible range.
+     */
+    public var relativeGradient: Bool?
     
     /**
      * The first color of the top area.
@@ -127,6 +132,7 @@ public struct BaselineSeriesOptions: SeriesOptionsCommon {
                 baseLineStyle: LineStyle? = nil,
                 autoscaleInfoProvider: AutoscaleInfoProvider? = nil,
                 baseValue: BaseValueType? = nil,
+                relativeGradient: Bool? = nil,
                 topFillColor1: ChartColor? = nil,
                 topFillColor2: ChartColor? = nil,
                 topLineColor: ChartColor? = nil,
@@ -160,6 +166,7 @@ public struct BaselineSeriesOptions: SeriesOptionsCommon {
         self.baseLineStyle = baseLineStyle
         self.autoscaleInfoProvider = autoscaleInfoProvider
         self.baseValue = baseValue
+        self.relativeGradient = relativeGradient
         self.topFillColor1 = topFillColor1
         self.topFillColor2 = topFillColor2
         self.topLineColor = topLineColor

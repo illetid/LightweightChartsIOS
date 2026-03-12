@@ -36,6 +36,7 @@ import Foundation
  plugin.detach()
  ```
  */
+@MainActor
 public class ImageWatermarkPlugin<Chart>: PanePluginAdapter<Chart>, PluginWithOptions
 where Chart: JavaScriptObject {
 
@@ -79,16 +80,11 @@ where Chart: JavaScriptObject {
         let watermarkName = "imageWatermark" + String.uniqueString
         let optionsJson = options.jsonString()
         let imageUrlJson = imageUrl.jsonString()
-        let script = """
-        (function() {
-            var pane = \(paneExpression());
-            if (!pane) {
-                throw new Error('Invalid pane index: \(paneIndex). Pane does not exist in this chart.');
-            }
-            window['\(watermarkName)'] = LightweightCharts.createImageWatermark(pane, \(imageUrlJson), \(optionsJson));
-        })();
-        """
-        evaluateScript(script, completion: nil)
+        let script = paneScopedCreationScript(
+            objectName: watermarkName,
+            factoryCall: "LightweightCharts.createImageWatermark(pane, \(imageUrlJson), \(optionsJson))"
+        )
+        evaluateScript(script)
 
         // Create the watermark handle
         watermark = ImageWatermark(context: context, jsName: watermarkName)
@@ -105,6 +101,7 @@ where Chart: JavaScriptObject {
 
         // Detach the underlying watermark
         watermark?.detach()
+        watermark = nil
 
         super.detach()
     }
@@ -177,20 +174,17 @@ where Chart: JavaScriptObject {
         let watermarkName = "imageWatermark" + String.uniqueString
         let optionsJson = options.jsonString()
         let urlJson = url.jsonString()
-        let script = """
-        (function() {
-            var pane = \(paneExpression());
-            if (!pane) {
-                throw new Error('Invalid pane index: \(paneIndex). Pane does not exist in this chart.');
-            }
-            window['\(watermarkName)'] = LightweightCharts.createImageWatermark(pane, \(urlJson), \(optionsJson));
-        })();
-        """
-        evaluateScript(script, completion: nil)
+        let script = paneScopedCreationScript(
+            objectName: watermarkName,
+            factoryCall: "LightweightCharts.createImageWatermark(pane, \(urlJson), \(optionsJson))"
+        )
+        evaluateScript(script)
 
         // Create the new watermark handle
         if let context = context {
             watermark = ImageWatermark(context: context, jsName: watermarkName)
+            // Reapply current options to ensure consistency (matches documented behavior)
+            watermark?.applyOptions(self.options)
         }
     }
 }

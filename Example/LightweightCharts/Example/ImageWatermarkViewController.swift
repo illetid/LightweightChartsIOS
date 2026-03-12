@@ -289,13 +289,12 @@ extension ImageWatermarkViewController: LightweightChartsDelegate {
         </svg>
         """
 
-        // Encode SVG to base64 data URL
-        guard let svgData = watermarkSvg.data(using: .utf8),
-              let base64String = svgData.base64EncodedString() as String? else {
+                // Encode SVG to base64 data URL.
+                guard let svgData = watermarkSvg.data(using: .utf8) else {
             return
         }
 
-        let imageUrl = "data:image/svg+xml;base64,\(base64String)"
+                let imageUrl = "data:image/svg+xml;base64,\(svgData.base64EncodedString())"
 
         let watermarkOptions = ImageWatermarkOptions(
             alpha: 0.5,

@@ -1,6 +1,6 @@
 import Foundation
 
-public enum TickMarkType: Int, Codable {
+public enum TickMarkType: Int, Codable, Sendable {
     case year
     case month
     case dayOfMonth
@@ -8,7 +8,7 @@ public enum TickMarkType: Int, Codable {
     case timeWithSeconds
 }
 
-public struct TickMarkFormatterParameters: Codable {
+public struct TickMarkFormatterParameters: Codable, Sendable {
     
     public let time: EventTime
     public let tickMarkType: TickMarkType

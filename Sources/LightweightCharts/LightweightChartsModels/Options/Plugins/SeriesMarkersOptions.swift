@@ -1,6 +1,6 @@
 import Foundation
 
-public enum SeriesMarkerZOrder: String, Codable {
+public enum SeriesMarkerZOrder: String, Codable, Sendable {
     case top
     case aboveSeries
     case normal
@@ -13,7 +13,7 @@ public enum SeriesMarkerZOrder: String, Codable {
  Use this options type when creating or configuring a series markers plugin via
  `SeriesApi.createMarkersPlugin(options:)`.
  */
-public struct SeriesMarkersOptions {
+public struct SeriesMarkersOptions: Sendable {
 
     /**
      Whether the plugin is active and visible.

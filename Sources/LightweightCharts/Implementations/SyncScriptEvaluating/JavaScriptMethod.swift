@@ -1,6 +1,8 @@
 import Foundation
 
-public enum JavaScriptMethod<Input: Decodable, Output: Encodable> {
+// This is the actual closure-carrying boundary for formatter/provider options.
+// Higher-level option models can stay plain Sendable once the unchecked scope is kept here.
+public enum JavaScriptMethod<Input: Decodable, Output: Encodable>: @unchecked Sendable {
     case javaScript(String)
     case closure((Input) -> Output)
 }
@@ -25,7 +27,9 @@ extension JavaScriptMethod: JavaScriptSyncMethod {
 }
 
 // MARK: - JSFunction
-struct JSFunction<Input: Decodable, Output: Encodable> {
+// Wraps JavaScriptMethod for use in options; unchecked Sendable is safe because all usage
+// is confined to @MainActor-isolated bridge code paths.
+struct JSFunction<Input: Decodable, Output: Encodable>: @unchecked Sendable {
     
     enum PromptFunction {
         
@@ -84,4 +88,33 @@ struct JSFunction<Input: Decodable, Output: Encodable> {
         }
     }
     
+}
+
+struct JavaScriptOptionsScriptBuilder {
+
+    let variableName: String
+    private let closuresStore: ClosuresStore?
+
+    private(set) var script: String
+
+    init(variableName: String = "options", baseJSON: String, closuresStore: ClosuresStore?) {
+        self.variableName = variableName
+        self.closuresStore = closuresStore
+        self.script = "var \(variableName) = \(baseJSON);"
+    }
+
+    mutating func assign<Input: Decodable, Output: Encodable>(
+        _ propertyPath: String,
+        formatter: JSFunction<Input, Output>?,
+        ensureObject objectPath: String? = nil
+    ) {
+        guard let formatter else { return }
+
+        if let objectPath {
+            script.append("\(variableName).\(objectPath) = \(variableName).\(objectPath) ?? {};")
+        }
+
+        closuresStore?.addMethod(formatter.function, forName: formatter.name)
+        script.append("\(variableName).\(propertyPath) = \(formatter.script());")
+    }
 }

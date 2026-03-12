@@ -1,6 +1,6 @@
 import Foundation
 
-public struct BarSeriesOptions: SeriesOptionsCommon {
+public struct BarSeriesOptions: SeriesOptionsCommon, Sendable {
     
     public var lastValueVisible: Bool?
     public var title: String?

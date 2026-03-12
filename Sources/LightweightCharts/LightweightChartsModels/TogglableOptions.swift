@@ -1,6 +1,6 @@
 import Foundation
 
-public enum TogglableOptions<Options> {
+public enum TogglableOptions<Options: Sendable>: Sendable {
     case options(Options)
     case enabled(Bool)
 }

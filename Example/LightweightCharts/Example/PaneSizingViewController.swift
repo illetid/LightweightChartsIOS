@@ -163,8 +163,8 @@ class PaneSizingViewController: UIViewController {
     }
 
     @objc private func setStretch() {
-        chart.panes { [weak self] panes in
-            guard panes.count >= 2 else { return }
+        Task { @MainActor [weak self] in
+            guard let panes = try? await self?.chart.panes() ?? [], panes.count >= 2 else { return }
             panes[0].setStretchFactor(stretchFactor: 3.0)
             panes[1].setStretchFactor(stretchFactor: 1.0)
             self?.infoLabel.text = "Stretch: pane0=3, pane1=1"
@@ -172,8 +172,8 @@ class PaneSizingViewController: UIViewController {
     }
 
     @objc private func setEqual() {
-        chart.panes { [weak self] panes in
-            guard panes.count >= 2 else { return }
+        Task { @MainActor [weak self] in
+            guard let panes = try? await self?.chart.panes() ?? [], panes.count >= 2 else { return }
             panes[0].setStretchFactor(stretchFactor: 1.0)
             panes[1].setStretchFactor(stretchFactor: 1.0)
             self?.infoLabel.text = "Stretch: equal"
@@ -181,25 +181,21 @@ class PaneSizingViewController: UIViewController {
     }
 
     @objc private func getHeights() {
-        chart.panes { [weak self] panes in
+        Task { @MainActor [weak self] in
             guard let self = self else { return }
-            let group = DispatchGroup()
-            var heights: [Int: Double] = [:]
+            guard let panes = try? await chart.panes() else { return }
 
+            var heights: [Int: Double] = [:]
             for pane in panes {
-                group.enter()
-                pane.getHeight { height in
+                if let height = try? await pane.getHeight() {
                     heights[pane.index] = height
-                    group.leave()
                 }
             }
 
-            group.notify(queue: .main) {
-                let desc = heights.sorted(by: { $0.key < $1.key })
-                    .map { "pane\($0.key)=\(Int($0.value))px" }
-                    .joined(separator: ", ")
-                self.infoLabel.text = desc
-            }
+            let desc = heights.sorted(by: { $0.key < $1.key })
+                .map { "pane\($0.key)=\(Int($0.value))px" }
+                .joined(separator: ", ")
+            self.infoLabel.text = desc
         }
     }
 }

@@ -3,7 +3,7 @@ import Foundation
 /**
  * Structure describing options of the chart. Series options are to be set separately
  */
-public struct ChartOptions: Codable {
+public struct ChartOptions: Codable, Sendable {
     
     /**
      Width of the chart
@@ -181,32 +181,14 @@ extension ChartOptions {
         let variableName = "options"
         // Use JSChartOptions which excludes the deprecated watermark property (task 4.3)
         let jsOptions = JSChartOptions(self)
-        var optionsScript = "var \(variableName) = \(jsOptions.jsonString);"
-        if let formatter = localization?.priceFormatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).localization.priceFormatter = \(formatter.script());")
-        }
-        if let formatter = localization?.timeFormatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).localization.timeFormatter = \(formatter.script());")
-        }
-        if let formatter = localization?.percentageFormatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).localization.percentageFormatter = \(formatter.script());")
-        }
-        if let formatter = localization?.tickmarksPriceFormatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).localization.tickmarksPriceFormatter = \(formatter.script());")
-        }
-        if let formatter = localization?.tickmarksPercentageFormatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).localization.tickmarksPercentageFormatter = \(formatter.script());")
-        }
-        if let formatter = timeScale?.tickMarkFormatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).timeScale.tickMarkFormatter = \(formatter.script());")
-        }
-        return (optionsScript, variableName)
+        var builder = JavaScriptOptionsScriptBuilder(variableName: variableName, baseJSON: jsOptions.jsonString, closuresStore: closuresStore)
+        builder.assign("localization.priceFormatter", formatter: localization?.priceFormatterJSFunction, ensureObject: "localization")
+        builder.assign("localization.timeFormatter", formatter: localization?.timeFormatterJSFunction, ensureObject: "localization")
+        builder.assign("localization.percentageFormatter", formatter: localization?.percentageFormatterJSFunction, ensureObject: "localization")
+        builder.assign("localization.tickmarksPriceFormatter", formatter: localization?.tickmarksPriceFormatterJSFunction, ensureObject: "localization")
+        builder.assign("localization.tickmarksPercentageFormatter", formatter: localization?.tickmarksPercentageFormatterJSFunction, ensureObject: "localization")
+        builder.assign("timeScale.tickMarkFormatter", formatter: timeScale?.tickMarkFormatterJSFunction, ensureObject: "timeScale")
+        return (builder.script, variableName)
     }
 
 }

@@ -1,6 +1,7 @@
 import Foundation
 import WebKit
 
+@MainActor
 protocol MessageHandlerDelegate: AnyObject {
     
     func messageHandler(_ messageHandler: MessageHandler,
@@ -10,6 +11,8 @@ protocol MessageHandlerDelegate: AnyObject {
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveCrosshairMoveWithParameters parameters: MouseEventParams)
     func messageHandler(_ messageHandler: MessageHandler,
+                        didReceiveDataChangedWithScope scope: DataChangedScope)
+    func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveVisibleTimeRangeChangeWithParameters parameters: TimeRange?)
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveVisibleLogicalRangeChangeWithParameters parameters: LogicalRange?)
@@ -18,6 +21,7 @@ protocol MessageHandlerDelegate: AnyObject {
 }
 
 // MARK: -
+@MainActor
 class MessageHandler: NSObject {
     
     weak var delegate: MessageHandlerDelegate?
@@ -30,6 +34,48 @@ class MessageHandler: NSObject {
             throw error
         }
     }
+
+    func handleMessage(name: String, bodyJSONString: String) {
+        let nameComponents = name.components(separatedBy: "_")
+        if let namePrefix = nameComponents.first,
+            let subscription = Subscription(rawValue: namePrefix) {
+            switch subscription {
+            case .click:
+                if let parameters: MouseEventParams = try? decode(bodyJSONString) {
+                    delegate?.messageHandler(self, didReceiveClickWithParameters: parameters)
+                } else {
+                    NSLog("LWChart: Failed to decode MouseEventParams for click subscription: \(bodyJSONString)")
+                }
+            case .dblClick:
+                if let parameters: MouseEventParams = try? decode(bodyJSONString) {
+                    delegate?.messageHandler(self, didReceiveDblClickWithParameters: parameters)
+                } else {
+                    NSLog("LWChart: Failed to decode MouseEventParams for dblClick subscription: \(bodyJSONString)")
+                }
+            case .crosshairMove:
+                if let parameters: MouseEventParams = try? decode(bodyJSONString) {
+                    delegate?.messageHandler(self, didReceiveCrosshairMoveWithParameters: parameters)
+                } else {
+                    NSLog("LWChart: Failed to decode MouseEventParams for crosshairMove subscription: \(bodyJSONString)")
+                }
+            case .dataChanged:
+                if let scope: DataChangedScope = try? decode(bodyJSONString) {
+                    delegate?.messageHandler(self, didReceiveDataChangedWithScope: scope)
+                } else {
+                    NSLog("LWChart: Failed to decode DataChangedScope for dataChanged subscription: \(bodyJSONString)")
+                }
+            case .visibleTimeRangeChange:
+                let parameters: TimeRange? = try? decode(bodyJSONString)
+                delegate?.messageHandler(self, didReceiveVisibleTimeRangeChangeWithParameters: parameters)
+            case .visibleLogicalRangeChange:
+                let parameters: LogicalRange? = try? decode(bodyJSONString)
+                delegate?.messageHandler(self, didReceiveVisibleLogicalRangeChangeWithParameters: parameters)
+            case .timeScaleSizeChange:
+                let parameters: Rectangle? = try? decode(bodyJSONString)
+                delegate?.messageHandler(self, didReceiveTimeScaleSizeChangeWithParameters: parameters)
+            }
+        }
+    }
     
 }
 
@@ -38,34 +84,8 @@ extension MessageHandler: WKScriptMessageHandler {
     
     func userContentController(_ userContentController: WKUserContentController,
                                didReceive message: WKScriptMessage) {
-        let nameComponents = message.name.components(separatedBy: "_")
-        if let namePrefix = nameComponents.first,
-            let subscription = Subscription(rawValue: namePrefix) {
-            guard let messageBodyJSONString = message.body as? String else { return }
-            switch subscription {
-            case .click:
-                if let parameters: MouseEventParams = try? decode(messageBodyJSONString) {
-                    delegate?.messageHandler(self, didReceiveClickWithParameters: parameters)
-                }
-            case .dblClick:
-                if let parameters: MouseEventParams = try? decode(messageBodyJSONString) {
-                    delegate?.messageHandler(self, didReceiveDblClickWithParameters: parameters)
-                }
-            case .crosshairMove:
-                if let parameters: MouseEventParams = try? decode(messageBodyJSONString) {
-                    delegate?.messageHandler(self, didReceiveCrosshairMoveWithParameters: parameters)
-                }
-            case .visibleTimeRangeChange:
-                let parameters: TimeRange? = try? decode(messageBodyJSONString)
-                delegate?.messageHandler(self, didReceiveVisibleTimeRangeChangeWithParameters: parameters)
-            case .visibleLogicalRangeChange:
-                let parameters: LogicalRange? = try? decode(messageBodyJSONString)
-                delegate?.messageHandler(self, didReceiveVisibleLogicalRangeChangeWithParameters: parameters)
-            case .timeScaleSizeChange:
-                let parameters: Rectangle? = try? decode(messageBodyJSONString)
-                delegate?.messageHandler(self, didReceiveTimeScaleSizeChangeWithParameters: parameters)
-            }
-        }
+        guard let bodyJSONString = message.body as? String else { return }
+        handleMessage(name: message.name, bodyJSONString: bodyJSONString)
     }
     
 }

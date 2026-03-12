@@ -1,7 +1,7 @@
 import Foundation
 
 extension Bundle {
-    static var module: Bundle = {
+    static let module: Bundle = {
         Bundle(for: LightweightCharts.self)
     }()
 }

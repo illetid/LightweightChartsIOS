@@ -1,7 +1,7 @@
 import Foundation
 
 protocol LineSeriesData: SingleValueSeriesData {
-    
+
     /**
      Optional color value for certain data item. If missed, color from options is used
      */
@@ -12,16 +12,16 @@ protocol LineSeriesData: SingleValueSeriesData {
 /**
 * Structure describing single data item for series of type Line or Area
 */
-public struct LineData: LineSeriesData, Equatable {
-    
+public struct LineData: LineSeriesData, Equatable, Sendable {
+
     public var time: Time
     public var value: Double?
     public var color: ChartColor?
-    
+
     public init(time: Time, value: Double?, color: ChartColor? = nil) {
         self.time = time
         self.value = value
         self.color = color
     }
-    
+
 }

@@ -1,56 +1,37 @@
 import Foundation
 
+@MainActor
 public extension SeriesApi where Self: SeriesObject {
-    
+
+    // MARK: - Synchronous methods
+
+    var dataChangedEvents: AsyncStream<DataChangedScope> {
+        makeDataChangedStream()
+    }
+
     func priceFormatter() -> PriceFormatterApi {
         let priceFormatter = PriceFormatter(context: context)
         let script = "window['\(priceFormatter.jsName)'] = \(jsName).priceFormatter();"
-        context.evaluateScript(script) { _, _ in
-        }
+        context.submitScript(script)
         return priceFormatter
     }
-    
-    func coordinateToPrice(coordinate: Double, completion: @escaping (BarPrice?) -> Void) {
-        let script = "\(jsName).coordinateToPrice(\(coordinate));"
-        context.evaluateScript(script) { (result, _) in
-            completion(result as? BarPrice)
-        }
-    }
-    
-    func priceToCoordinate(price: Double, completion: @escaping (Coordinate?) -> Void) {
-        let script = "\(jsName).priceToCoordinate(\(price));"
-        context.evaluateScript(script) { (result, _) in
-            completion(result as? Coordinate)
-        }
-    }
-    
-    func barsInLogicalRange(range: FromToRange<Double>, completion: @escaping (BarsInfo?) -> Void) {
-        let script = "\(jsName).barsInLogicalRange(\(range.jsonString));"
-        context.decodedResult(forScript: script, completion: completion)
-    }
-    
+
     func applyOptions(options: Options) {
         let optionsScript = options.optionsScript(for: closureStore)
         let script = """
         \(optionsScript.options)
         \(jsName).applyOptions(\(optionsScript.variableName));
         """
-        context.evaluateScript(script, completion: nil)
+        context.submitScript(script)
     }
-    
-    func options(completion: @escaping (Options?) -> Void) {
-        let script = "\(jsName).options();"
-        context.decodedResult(forScript: script, completion: completion)
-    }
-    
+
     func priceScale() -> PriceScaleApi {
         let priceScale = PriceScale(context: context)
         let script = "window['\(priceScale.jsName)'] = \(jsName).priceScale();"
-        context.evaluateScript(script) { _, _ in
-        }
+        context.submitScript(script)
         return priceScale
     }
-    
+
     func setData(data: [TickValue]) {
         setSeriesData(data)
     }
@@ -63,24 +44,18 @@ public extension SeriesApi where Self: SeriesObject {
         setSeriesData(data)
     }
 
-    func update(bar: TickValue) {
-        updateSeriesBar(bar)
+    func update(bar: TickValue, historicalUpdate: Bool? = nil) {
+        updateSeriesBar(bar, historicalUpdate: historicalUpdate)
     }
 
-    func update(bar: WhitespaceData) {
-        updateSeriesBar(bar)
+    func update(bar: WhitespaceData, historicalUpdate: Bool? = nil) {
+        updateSeriesBar(bar, historicalUpdate: historicalUpdate)
     }
 
-    func update(bar: SeriesDataType<TickValue>) {
-        updateSeriesBar(bar)
+    func update(bar: SeriesDataType<TickValue>, historicalUpdate: Bool? = nil) {
+        updateSeriesBar(bar, historicalUpdate: historicalUpdate)
     }
-    
-    func dataByIndex(logicalIndex: Int, mismatchDirection: MismatchDirection? = nil, completion: @escaping (TickValue?) -> Void) {
-        let direction = mismatchDirection?.rawValue ?? 0
-        let script = "\(jsName).dataByIndex(\(logicalIndex), \(direction));"
-        context.decodedResult(forScript: script, completion: completion)
-    }
-    
+
     func setMarkers(data: [SeriesMarker]) {
         // v5 compatibility: use createSeriesMarkers primitive
         // Store plugin reference on series object as _lwcMarkersPlugin
@@ -95,112 +70,129 @@ public extension SeriesApi where Self: SeriesObject {
             }
         }
         """
-        context.evaluateScript(script, completion: nil)
+        context.submitScript(script)
     }
 
-    func markers(completion: @escaping ([SeriesMarker]?) -> Void) {
-        // v5 compatibility: query markers from internal plugin if it exists
-        let script = """
-        (typeof \(jsName)._lwcMarkersPlugin !== 'undefined') ? \(jsName)._lwcMarkersPlugin.markers() : null;
-        """
-        context.decodedResult(forScript: script, completion: completion)
-    }
-    
     func createPriceLine(options: PriceLineOptions?) -> PriceLine {
         let priceLine = PriceLine(context: context)
         let options = options ?? PriceLineOptions()
         let script = "window['\(priceLine.jsName)'] = \(jsName).createPriceLine(\(options.jsonString));"
-        context.evaluateScript(script, completion: nil)
+        context.submitScript(script)
         return priceLine
     }
-    
+
     func removePriceLine(line: PriceLine) {
         let script = "\(jsName).removePriceLine(\(line.jsName));"
-        context.evaluateScript(script, completion: nil)
+        context.submitScript(script)
     }
 
-    func priceLines(completion: @escaping ([PriceLine]?) -> Void) {
-        let completeOnMain: ([PriceLine]?) -> Void = { lines in
-            if Thread.isMainThread {
-                completion(lines)
-            } else {
-                DispatchQueue.main.async {
-                    completion(lines)
-                }
-            }
-        }
-
-        let countScript = "\(jsName).priceLines().length;"
-        context.evaluateScript(countScript) { [self] result, _ in
-            guard let count = (result as? NSNumber)?.intValue else {
-                completeOnMain(nil)
-                return
-            }
-
-            guard count > 0 else {
-                completeOnMain([])
-                return
-            }
-
-            let stateQueue = DispatchQueue(label: "LightweightCharts.SeriesApi.priceLines")
-            var lines = Array<PriceLine?>(repeating: nil, count: count)
-            var remaining = count
-            var didFail = false
-
-            for index in 0..<count {
-                let priceLine = PriceLine(context: self.context)
-                let createScript = "window['\(priceLine.jsName)'] = \(self.jsName).priceLines()[\(index)];"
-                self.context.evaluateScript(createScript) { _, error in
-                    stateQueue.async {
-                        guard !didFail else {
-                            return
-                        }
-
-                        if error != nil {
-                            didFail = true
-                            completeOnMain(nil)
-                            return
-                        }
-
-                        lines[index] = priceLine
-                        remaining -= 1
-
-                        if remaining == 0 {
-                            completeOnMain(lines.compactMap { $0 })
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    func seriesType(completion: @escaping (SeriesType?) -> Void) {
-        let script = "\(jsName).seriesType();"
-        context.decodedResult(forScript: script, completion: completion)
-    }
-    
-    func seriesOrder(completion: @escaping (Int?) -> Void) {
-        let script = "\(jsName).seriesOrder();"
-        context.evaluateScript(script) { result, _ in
-            completion((result as? NSNumber)?.intValue)
-        }
-    }
-    
     func setSeriesOrder(order: Int) {
         let script = "\(jsName).setSeriesOrder(\(order));"
-        context.evaluateScript(script, completion: nil)
+        context.submitScript(script)
     }
-    
-    func pop(count: Int, completion: @escaping ([TickValue]?) -> Void) {
-        let script = "JSON.stringify(\(jsName).pop(\(count)));"
-        context.decodedResult(forScript: script, completion: completion)
+
+    func moveToPane(paneIndex: Int) {
+        let script = "\(jsName).moveToPane(\(paneIndex));"
+        context.submitScript(script)
     }
-    
-    func lastValueData(globalLast: Bool, completion: @escaping (LastValueDataResult?) -> Void) {
-        let script = "JSON.stringify(\(jsName).lastValueData(\(globalLast ? "true" : "false")));"
-        context.decodedResult(forScript: script, completion: completion)
+
+    func subscribeDataChanged() {
+        subscribeToDataChanged()
     }
-    
+
+    func unsubscribeDataChanged() {
+        unsubscribeFromDataChanged()
+    }
+
+    // MARK: - Async methods (Swift 6)
+
+    func priceToCoordinate(price: Double) async throws(JavaScriptBridgeError) -> Coordinate? {
+        let script = "\(jsName).priceToCoordinate(\(price));"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func coordinateToPrice(coordinate: Double) async throws(JavaScriptBridgeError) -> BarPrice? {
+        let script = "\(jsName).coordinateToPrice(\(coordinate));"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func barsInLogicalRange(range: FromToRange<Double>) async throws(JavaScriptBridgeError) -> BarsInfo {
+        let script = "\(jsName).barsInLogicalRange(\(range.jsonString));"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func options() async throws(JavaScriptBridgeError) -> Options {
+        let script = "\(jsName).options();"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func data() async throws(JavaScriptBridgeError) -> [TickValue] {
+        let script = "\(jsName).data();"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func dataByIndex(logicalIndex: Int, mismatchDirection: MismatchDirection? = nil) async throws(JavaScriptBridgeError) -> TickValue? {
+        let direction = mismatchDirection?.rawValue ?? 0
+        let script = "\(jsName).dataByIndex(\(logicalIndex), \(direction));"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func markers() async throws(JavaScriptBridgeError) -> [SeriesMarker] {
+        let script = """
+        (typeof \(jsName)._lwcMarkersPlugin !== 'undefined') ? \(jsName)._lwcMarkersPlugin.markers() : null;
+        """
+        return try await context.decodedResult(forScript: script) ?? []
+    }
+
+    func priceLines() async throws(JavaScriptBridgeError) -> [PriceLine] {
+        let countScript = "\(jsName).priceLines().length;"
+        let count = try await context.evaluate(script: countScript, resultType: Int.self)
+        guard count > 0 else {
+            return []
+        }
+
+        var lines: [PriceLine] = []
+        for index in 0..<count {
+            let priceLine = PriceLine(context: context)
+            let createScript = "window['\(priceLine.jsName)'] = \(jsName).priceLines()[\(index)];"
+            _ = try await context.evaluateScript(createScript)
+            lines.append(priceLine)
+        }
+        return lines
+    }
+
+    func seriesType() async throws(JavaScriptBridgeError) -> SeriesType {
+        let script = "\(jsName).seriesType();"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func seriesOrder() async throws(JavaScriptBridgeError) -> Int {
+        let script = "\(jsName).seriesOrder();"
+        return try await context.evaluate(script: script, resultType: Int.self)
+    }
+
+    func pop(count: Int) async throws(JavaScriptBridgeError) -> [TickValue] {
+        let script = "\(jsName).pop(\(count));"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func lastValueData(globalLast: Bool) async throws(JavaScriptBridgeError) -> LastValueDataResult {
+        let script = "\(jsName).lastValueData(\(globalLast ? "true" : "false"));"
+        return try await context.decodedResult(forScript: script)
+    }
+
+    func getPane() async throws(JavaScriptBridgeError) -> PaneApi {
+        guard let chartJSName else {
+            throw JavaScriptBridgeError.evaluationFailed(script: "\(jsName).getPane().paneIndex();", message: "Series is not associated with a chart handle.")
+        }
+
+        let script = "\(jsName).getPane().paneIndex();"
+        let paneIndex = try await context.evaluate(script: script, resultType: Int.self)
+        return Pane(index: paneIndex, chartJSName: chartJSName, context: context, closureStore: closureStore)
+    }
+
+    // MARK: - Private helpers
+
     private func setSeriesData<T: SeriesData>(_ data: [T]) {
         // Update last data time tracking
         if let last = data.last {
@@ -210,15 +202,19 @@ public extension SeriesApi where Self: SeriesObject {
         }
 
         let script = "\(jsName).setData(\(data.jsonString));"
-        context.evaluateScript(script, completion: nil)
+        context.submitScript(script)
     }
 
-    private func updateSeriesBar<T: SeriesData>(_ bar: T) {
+    private func updateSeriesBar<T: SeriesData>(_ bar: T, historicalUpdate: Bool?) {
         // Update last data time tracking
         _lastDataTime = bar.time
 
-        let script = "\(jsName).update(\(bar.jsonString));"
-        context.evaluateScript(script, completion: nil)
+        var script = "\(jsName).update(\(bar.jsonString)"
+        if let historicalUpdate {
+            script += ", \(historicalUpdate ? "true" : "false")"
+        }
+        script += ");"
+        context.submitScript(script)
     }
 
     // MARK: - Plugin Factories
@@ -228,6 +224,8 @@ public extension SeriesApi where Self: SeriesObject {
     /// The plugin provides explicit control over markers, including setting/getting markers
     /// and applying options at runtime. Use the plugin's `detach()` method to remove it
     /// when no longer needed.
+    /// Immediate follow-up plugin calls are safe because creation and later mutations are
+    /// submitted to the same main-actor bridge in call order.
     ///
     /// - Parameters:
     ///   - data: Initial marker data to display.
@@ -247,6 +245,8 @@ public extension SeriesApi where Self: UpDownMarkersSupported {
     ///
     /// The plugin provides visual indicators for directional price movements.
     /// Use the plugin's `detach()` method to remove it when no longer needed.
+    /// Immediate follow-up plugin calls are safe because creation and later mutations are
+    /// submitted to the same main-actor bridge in call order.
     ///
     /// - Parameters:
     ///   - data: Initial marker data to display.

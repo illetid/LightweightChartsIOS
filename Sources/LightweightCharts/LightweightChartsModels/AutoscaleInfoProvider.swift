@@ -1,6 +1,6 @@
 import Foundation
 
-public struct AutoscaleInfoProvider {
+public struct AutoscaleInfoProvider: Sendable {
     
     public var function: JavaScriptMethod<AutoscaleInfo?, AutoscaleInfo>? { jsFunction?.function }
     
@@ -25,7 +25,7 @@ extension AutoscaleInfoProvider: Codable {
 }
 
 // MARK: -
-public struct AutoScaleMargins: Codable {
+public struct AutoScaleMargins: Codable, Sendable {
     
     /** The number of pixels for bottom margin */
     public var below: Double?
@@ -40,7 +40,7 @@ public struct AutoScaleMargins: Codable {
 }
 
 // MARK: -
-public struct AutoscaleInfo: Codable {
+public struct AutoscaleInfo: Codable, Sendable {
     
     public var priceRange: PriceRange?
     public var margins: AutoScaleMargins?
@@ -53,7 +53,7 @@ public struct AutoscaleInfo: Codable {
 }
 
 // MARK: -
-public struct PriceRange: Codable {
+public struct PriceRange: Codable, Sendable {
     
     public var minValue: Double?
     public var maxValue: Double?

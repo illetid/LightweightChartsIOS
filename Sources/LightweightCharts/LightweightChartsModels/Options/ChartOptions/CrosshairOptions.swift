@@ -6,7 +6,7 @@ import Foundation
  * Magnet means that the vertical line of the crosshair follows the pointer,
  * while the horizontal line is placed on the corresponding series point.
  */
-public enum CrosshairMode: Int, Codable {
+public enum CrosshairMode: Int, Codable, Sendable {
     case normal
     case magnet
     case hidden
@@ -17,7 +17,7 @@ public enum CrosshairMode: Int, Codable {
 /**
  Structure describing crosshair options
  */
-public struct CrosshairOptions: Codable {
+public struct CrosshairOptions: Codable, Sendable {
     
     /**
      Crosshair mode

@@ -5,7 +5,7 @@ import Foundation
 
  Used by the up-down markers plugin to show directional price movements on a series.
  */
-public struct SeriesUpDownMarker: Codable {
+public struct SeriesUpDownMarker: Codable, Sendable {
 
     /// The point on the horizontal scale.
     public var time: Time

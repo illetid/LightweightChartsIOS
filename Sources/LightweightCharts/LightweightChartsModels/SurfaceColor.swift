@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-public enum SurfaceColor {
+public enum SurfaceColor: Sendable {
     case solid(color: ChartColor)
     case verticalGradient(topColor: ChartColor, bottomColor: ChartColor)
     

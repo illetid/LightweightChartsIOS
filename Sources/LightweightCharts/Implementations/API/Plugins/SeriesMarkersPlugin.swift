@@ -9,6 +9,7 @@ import Foundation
  The plugin can be created on any compatible series type (Line, Bar, Area, etc.).
  Use `detach()` to remove the plugin from the series when no longer needed.
  */
+@MainActor
 public class SeriesMarkersPlugin<Series>: SeriesPluginAdapter<Series>, PluginWithOptions
 where Series: SeriesApi & SeriesObject {
 
@@ -41,7 +42,7 @@ where Series: SeriesApi & SeriesObject {
         } else {
             script = "window['\(jsName)'] = LightweightCharts.createSeriesMarkers(\(series.jsName), \(data.jsonString), \(optionsJson));"
         }
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
     }
 
     // MARK: - Plugin Conformance
@@ -54,7 +55,7 @@ where Series: SeriesApi & SeriesObject {
         guard !isDetached else { return }
 
         let script = "\(jsName).detach();"
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
 
         super.detach()
     }
@@ -70,12 +71,25 @@ where Series: SeriesApi & SeriesObject {
         guard !isDetached, series != nil else { return }
 
         let script = "\(jsName).setMarkers(\(data.jsonString));"
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
+    }
+
+    /// Returns the current markers displayed on the series.
+    public func markers() async throws(JavaScriptBridgeError) -> [SeriesMarker] {
+        guard !isDetached else {
+            throw JavaScriptBridgeError.evaluationFailed(script: "\(jsName).markers();", message: "Plugin has been detached.")
+        }
+
+        let script = "\(jsName).markers();"
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     /// Returns the current markers displayed on the series.
     ///
     /// - Parameter completion: Completion handler with the array of markers.
+    /// - Deprecated: Use `markers() async throws -> [SeriesMarker]` instead.
+    ///   Completion-handler API will be removed in a future major release.
+    @available(*, deprecated, message: "Use markers() async throws -> [SeriesMarker] instead. Completion-handler API will be removed in a future major release.")
     public func getMarkers(completion: @escaping ([SeriesMarker]?) -> Void) {
         guard !isDetached else {
             completion(nil)
@@ -99,6 +113,6 @@ where Series: SeriesApi & SeriesObject {
 
         self.options = options
         let script = "\(jsName).applyOptions(\(options.jsonString()));"
-        evaluateScript(script, completion: nil)
+        evaluateScript(script)
     }
 }

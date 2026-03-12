@@ -3,7 +3,7 @@ import Foundation
 /**
  * Structure describing options common for all types of series
  */
-public protocol SeriesOptionsCommon: Codable {
+public protocol SeriesOptionsCommon: Codable, Sendable {
     
     /**
      Visibility of the label with the latest visible price on the price scale
@@ -87,20 +87,17 @@ extension SeriesOptionsCommon {
     
     func optionsScript(for closuresStore: ClosuresStore?) -> (options: String, variableName: String) {
         let variableName = "options"
-        var optionsScript = "var \(variableName) = \(jsonString);"
+        var builder = JavaScriptOptionsScriptBuilder(variableName: variableName, baseJSON: jsonString, closuresStore: closuresStore)
         if case let .custom(customFormatter) = priceFormat, let formatter = customFormatter.formatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).priceFormat.formatter = \(formatter.script());")
+            builder.assign("priceFormat.formatter", formatter: formatter, ensureObject: "priceFormat")
         }
         if case let .custom(customFormatter) = priceFormat, let formatter = customFormatter.tickmarksFormatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).priceFormat.tickmarksFormatter = \(formatter.script());")
+            builder.assign("priceFormat.tickmarksFormatter", formatter: formatter, ensureObject: "priceFormat")
         }
         if let provider = autoscaleInfoProvider?.jsFunction {
-            closuresStore?.addMethod(provider.function, forName: provider.name)
-            optionsScript.append("\(variableName).autoscaleInfoProvider = \(provider.script());")
+            builder.assign("autoscaleInfoProvider", formatter: provider)
         }
-        return (optionsScript, variableName)
+        return (builder.script, variableName)
     }
     
 }

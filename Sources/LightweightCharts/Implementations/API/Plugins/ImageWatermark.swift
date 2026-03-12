@@ -5,6 +5,7 @@ import Foundation
 
  Use this handle to update watermark options or detach (remove) the watermark.
  */
+@MainActor
 public class ImageWatermark {
     typealias Context = JavaScriptEvaluator
 
@@ -23,8 +24,8 @@ public class ImageWatermark {
      */
     public func applyOptions(_ options: ImageWatermarkOptions) {
         guard let context = context else { return }
-        let script = "\(jsName).applyOptions(\(options.jsonString()));"
-        context.evaluateScript(script, completion: nil)
+        let script = "window['\(jsName)'].applyOptions(\(options.jsonString()));"
+        context.submitScript(script)
     }
 
     /**
@@ -34,8 +35,8 @@ public class ImageWatermark {
      */
     public func applyOptions(_ options: ImageWatermarkUpdateOptions) {
         guard let context = context else { return }
-        let script = "\(jsName).applyOptions(\(options.jsonString()));"
-        context.evaluateScript(script, completion: nil)
+        let script = "window['\(jsName)'].applyOptions(\(options.jsonString()));"
+        context.submitScript(script)
     }
 
     /**
@@ -46,7 +47,7 @@ public class ImageWatermark {
      */
     public func detach() {
         guard let context = context else { return }
-        let script = "\(jsName).detach();"
-        context.evaluateScript(script, completion: nil)
+        let script = "window['\(jsName)'].detach();"
+        context.submitScript(script)
     }
 }

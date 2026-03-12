@@ -9,6 +9,7 @@ import Foundation
 /// 1. Call the designated initializer with the series reference
 /// 2. Implement any plugin-specific functionality
 /// 3. Optionally override `detach()` if custom cleanup is needed
+@MainActor
 open class SeriesPluginAdapter<Series>: SeriesPlugin where Series: SeriesApi & SeriesObject {
 
     // MARK: - SeriesPlugin Conformance
@@ -65,13 +66,16 @@ open class SeriesPluginAdapter<Series>: SeriesPlugin where Series: SeriesApi & S
     /// Evaluates JavaScript code in the chart context.
     ///
     /// - Parameter script: The JavaScript code to evaluate.
-    /// - Parameter completion: Optional completion handler with result and error.
-    func evaluateScript(_ script: String, completion: ((Any?, Error?) -> Void)? = nil) {
-        guard let context = context else {
-            completion?(nil, nil)
-            return
+    func evaluateScript(_ script: String) {
+        guard let context = context else { return }
+        context.submitScript(script)
+    }
+
+    func requireContext() throws(JavaScriptBridgeError) -> JavaScriptEvaluator {
+        guard let context else {
+            throw JavaScriptBridgeError.contextUnavailable
         }
-        context.evaluateScript(script, completion: completion)
+        return context
     }
 
     /// Evaluates JavaScript code and decodes the result as a specified type.
@@ -86,10 +90,16 @@ open class SeriesPluginAdapter<Series>: SeriesPlugin where Series: SeriesApi & S
         completion: @escaping (Result<T, Error>) -> Void
     ) {
         guard let context = context else {
-            completion(.failure(NSError(domain: "LightweightCharts", code: 1, userInfo: [NSLocalizedDescriptionKey: "JavaScript context is no longer available."])))
+            completion(.failure(JavaScriptBridgeError.contextUnavailable))
             return
         }
-        context.evaluate(script: script, resultType: resultType, completion: completion)
+
+        if let callbackContext = context as? JavaScriptCallbackEvaluator {
+            callbackContext.evaluate(script: script, resultType: resultType, completion: completion)
+            return
+        }
+
+        completion(.failure(JavaScriptBridgeError.contextUnavailable))
     }
 
     /// Evaluates JavaScript code and decodes the result as a specified type.
@@ -105,7 +115,20 @@ open class SeriesPluginAdapter<Series>: SeriesPlugin where Series: SeriesApi & S
             completion(nil)
             return
         }
-        context.decodedResult(forScript: script, completion: completion)
+
+        guard let callbackContext = context as? JavaScriptCallbackEvaluator else {
+            completion(nil)
+            return
+        }
+
+        callbackContext.decodedResult(forScript: script) { (result: Result<T, Error>) in
+            switch result {
+            case .success(let value):
+                completion(value)
+            case .failure:
+                completion(nil)
+            }
+        }
     }
 
     // MARK: - Private Methods

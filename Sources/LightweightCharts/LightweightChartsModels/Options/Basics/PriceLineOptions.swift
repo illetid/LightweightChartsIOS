@@ -3,38 +3,38 @@ import Foundation
 /**
  Represents a price line options
  */
-public struct PriceLineOptions: Codable {
-    
+public struct PriceLineOptions: Codable, Sendable {
+
     /**
      * The optional ID of this price line.
      */
     public var id: String?
-    
+
     /**
      Price line's value
      */
     public var price: Double?
-    
+
     /**
      Price line's color
      */
     public var color: ChartColor?
-    
+
     /**
      Price line's width in pixels
      */
     public var lineWidth: LineWidth?
-    
+
     /**
      Price line's style
      */
     public var lineStyle: LineStyle?
-    
+
     /**
      Display line
      */
     public var lineVisible: Bool?
-    
+
     /**
      Display the current price value in on the price scale
      */
@@ -49,12 +49,12 @@ public struct PriceLineOptions: Codable {
      Axis label text color on the price scale.
      */
     public var axisLabelTextColor: ChartColor?
-    
+
     /**
      Price line's on the chart pane
      */
     public var title: String?
-    
+
     public init(id:String? = nil,
                 price: Double? = nil,
                 color: ChartColor? = nil,
@@ -76,5 +76,5 @@ public struct PriceLineOptions: Codable {
         self.axisLabelTextColor = axisLabelTextColor
         self.title = title
     }
-    
+
 }

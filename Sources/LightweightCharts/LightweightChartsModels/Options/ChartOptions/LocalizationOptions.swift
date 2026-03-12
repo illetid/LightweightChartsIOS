@@ -1,6 +1,6 @@
 import Foundation
 
-public struct LocalizationOptions {
+public struct LocalizationOptions: Sendable {
     
     // swiftlint:disable line_length
     /**

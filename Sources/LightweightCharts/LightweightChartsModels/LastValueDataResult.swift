@@ -1,6 +1,6 @@
 import Foundation
 
-public struct LastValueDataResult: Codable {
+public struct LastValueDataResult: Codable, Sendable {
     public var noData: Bool
     public var price: Double?
     public var color: String?

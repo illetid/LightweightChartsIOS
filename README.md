@@ -1,34 +1,32 @@
 # iOS LightweightCharts
 
-[![Version](https://img.shields.io/cocoapods/v/LightweightCharts.svg?style=flat)](https://cocoapods.org/pods/LightweightCharts)
-[![License](https://img.shields.io/cocoapods/l/LightweightCharts.svg?style=flat)](https://cocoapods.org/pods/LightweightCharts)
-[![Platform](https://img.shields.io/cocoapods/p/LightweightCharts.svg?style=flat)](https://cocoapods.org/pods/LightweightCharts)
-
 The iOS LightweightCharts is an iOS wrapper of the [TradingView Lightweight Charts](https://github.com/tradingview/lightweight-charts) library (v5.1.0 embedded).
 
 ## Example
 
-To run the example project, clone the repo, and run `pod install` from the Example directory first.
+The Example workspace is the canonical validation path for this repository.
+
+To run it locally:
+
+```bash
+cd Example
+pod install
+open LightweightCharts.xcworkspace
+```
 
 ## Requirements
 
-- iOS 13.0+ (CocoaPods and Swift Package Manager)
-- Xcode 12.0+
-- Swift 5.0+
+- iOS 15.0+
+- Xcode 16+
+- Swift 6+
+
+This repository is migrating as a breaking Swift 6 release. Completion-handler compatibility is not a release goal for the next major version.
 
 ## Installation
 
-### CocoaPods
-
-LightweightCharts is available through [CocoaPods](https://cocoapods.org). To install it, add the following line to your Podfile:
-
-```ruby
-pod 'LightweightCharts', '~> 5.1.0'
-```
-
 ### Swift Package Manager
 
-LightweightCharts is also available through [Swift Package Manager](https://swift.org/package-manager/). Add the following to your `Package.swift`:
+LightweightCharts is available through [Swift Package Manager](https://swift.org/package-manager/). Add the following to your `Package.swift`:
 
 ```swift
 dependencies: [
@@ -38,6 +36,12 @@ dependencies: [
 
 Or in Xcode: File > Add Package Dependencies > Enter the repository URL.
 
+### CocoaPods Status
+
+CocoaPods is unsupported for the next major Swift 6 release.
+
+The checked-in [LightweightCharts.podspec](LightweightCharts.podspec) is retained only so the local Example workspace can continue to resolve the library during migration work. It should not be treated as a supported distribution path for release planning.
+
 ## Usage
 
 ```swift
@@ -45,6 +49,7 @@ import LightweightCharts
 ```
 
 Create instance of LightweightCharts, which is a subclass of UIView, and add it to your view.
+
 ```swift
 var chart: LightweightCharts!
 
@@ -55,6 +60,7 @@ view.addSubview(chart)
 ```
 
 Add any series to the chart and store a reference to it.
+
 ```swift
 var series: BarSeries!
 
@@ -63,6 +69,7 @@ series = chart.addBarSeries(options: nil)
 ```
 
 Add data to the series.
+
 ```swift
 let data = [
     BarData(time: .string("2018-10-19"), open: 180.34, high: 180.99, low: 178.57, close: 179.85),
@@ -126,24 +133,43 @@ plugin.detach()
 
 See [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) for complete plugin documentation.
 
+## Migration Status
+
+The repository is in an async/await-first migration for the next major release. Expect source-breaking changes while the public API is converted away from completion handlers and aligned with Swift 6 strict concurrency.
+
+See [MIGRATION_TO_SWIFT6_ASYNC.md](MIGRATION_TO_SWIFT6_ASYNC.md) for the focused API migration guide.
+
+Current migration constraints:
+
+- Swift 6 and iOS 15 are required for the target release.
+- The Example workspace is the authoritative build and test target.
+- CocoaPods is not a supported installation path for the target release.
+- Public async APIs throw real bridge errors. Expect underlying WebKit evaluation failures or `JavaScriptBridgeError` when the JS context is unavailable, the returned value has the wrong shape, or decoding fails.
+
+Plugin factory semantics during the migration:
+
+- Plugin creation scripts and immediate follow-up plugin mutations are submitted on the same main-actor bridge in call order.
+- That means sequential code such as `let plugin = series.createMarkersPlugin(...); plugin.applyOptions(...)` is expected to be safe without extra waiting.
+
 ## Migration from v4
 
-Most existing code works without changes. Key changes:
+The existing v5 wrapper changes remain relevant for users migrating older code. Key changes from v4:
 
-- Minimum iOS version is now **13.0** for both CocoaPods and Swift Package Manager (was 12.0 for CocoaPods, 10.0 for SPM)
+- Minimum iOS version is now **15.0** for the Swift 6 release
 - Embedded Lightweight Charts upgraded from v4.0.0 to v5.1.0
 - `ChartOptions.watermark` is deprecated - use `createTextWatermarkPlugin()` instead
 - New explicit plugin APIs for markers and watermarks
 - `LayoutOptions.attributionLogo` is supported for explicit attribution logo visibility control
 - Attribution logo links to TradingView are opened in Safari (external browser)
-- New pane APIs: `panes(completion:)`, `removePane(index:)`, `swapPanes(first:second:)`
-- New parity APIs: `subscribeDblClick`, `setCrosshairPosition`, `clearCrosshairPosition`, `paneSize`, `SeriesApi.priceLines(completion:)`, and screenshot flags (`addTopLayer`, `includeCrosshair`)
+- New pane APIs: `await chart.panes()`, `removePane(index:)`, `swapPanes(first:second:)`
+- New parity APIs: `subscribeDblClick`, `setCrosshairPosition`, `clearCrosshairPosition`, `await chart.paneSize(paneIndex:)`, `await series.priceLines()`, and async screenshot flags (`addTopLayer`, `includeCrosshair`)
 
 ## Panes API
 
 ```swift
 // Query existing panes
-chart.panes { panes in
+Task {
+    let panes = try await chart.panes()
     print("Pane count:", panes.count)
 }
 
@@ -168,12 +194,12 @@ let chart = LightweightCharts(options: options)
 When users tap the built-in TradingView attribution link, the wrapper routes that navigation to Safari.
 If you disable `attributionLogo`, ensure your app still satisfies NOTICE and licensing obligations.
 
-See [MIGRATION_V4_TO_V5.md](MIGRATION_V4_TO_V5.md) for detailed migration guidance.
+See [MIGRATION_TO_SWIFT6_ASYNC.md](MIGRATION_TO_SWIFT6_ASYNC.md) for detailed migration guidance for the Swift 6 async release.
 
 ## License
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this software except in compliance with the License. You may obtain a copy of the License at LICENSE file. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-This software incorporates several parts of tslib (https://github.com/Microsoft/tslib, (c) Microsoft Corporation) that are covered by the Apache License, Version 2.0.
+This software incorporates several parts of [tslib](https://github.com/Microsoft/tslib), (c) Microsoft Corporation, that are covered by the Apache License, Version 2.0.
 
-This license requires specifying TradingView as the product creator. You shall add the "attribution notice" from the NOTICE file and a link to https://www.tradingview.com/ to the page of your website or mobile application that is available to your users. As thanks for creating this product, we'd be grateful if you add it in a prominent place.
+This license requires specifying TradingView as the product creator. You shall add the "attribution notice" from the NOTICE file and a link to [tradingview.com](https://www.tradingview.com/) to the page of your website or mobile application that is available to your users. As thanks for creating this product, we'd be grateful if you add it in a prominent place.

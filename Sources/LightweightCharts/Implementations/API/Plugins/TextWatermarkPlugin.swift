@@ -28,6 +28,7 @@ import Foundation
  plugin.detach()
  ```
  */
+@MainActor
 public class TextWatermarkPlugin<Chart>: PanePluginAdapter<Chart>, PluginWithOptions
 where Chart: JavaScriptObject {
 
@@ -64,16 +65,11 @@ where Chart: JavaScriptObject {
         // Create the text watermark in JavaScript
         let watermarkName = "textWatermark" + String.uniqueString
         let optionsJson = options.jsonString()
-        let script = """
-        (function() {
-            var pane = \(paneExpression());
-            if (!pane) {
-                throw new Error('Invalid pane index: \(paneIndex). Pane does not exist in this chart.');
-            }
-            window['\(watermarkName)'] = LightweightCharts.createTextWatermark(pane, \(optionsJson));
-        })();
-        """
-        evaluateScript(script, completion: nil)
+        let script = paneScopedCreationScript(
+            objectName: watermarkName,
+            factoryCall: "LightweightCharts.createTextWatermark(pane, \(optionsJson))"
+        )
+        evaluateScript(script)
 
         // Create the watermark handle
         watermark = TextWatermark(context: context, jsName: watermarkName)
@@ -90,6 +86,7 @@ where Chart: JavaScriptObject {
 
         // Detach the underlying watermark
         watermark?.detach()
+        watermark = nil
 
         super.detach()
     }
@@ -122,9 +119,21 @@ where Chart: JavaScriptObject {
     }
 
     /// Returns the current visibility state of the watermark.
+    public func visible() async throws(JavaScriptBridgeError) -> Bool {
+        guard !isDetached else {
+            throw JavaScriptBridgeError.evaluationFailed(script: "\(jsName).visible", message: "Plugin has been detached.")
+        }
+
+        return options.visible
+    }
+
+    /// Returns the current visibility state of the watermark.
     ///
     /// - Parameter completion: Completion handler with the visibility state,
     ///   or nil if the plugin has been detached.
+    /// - Deprecated: Use `visible() async throws -> Bool` instead.
+    ///   Completion-handler API will be removed in a future major release.
+    @available(*, deprecated, message: "Use visible() async throws -> Bool instead. Completion-handler API will be removed in a future major release.")
     public func getVisible(completion: @escaping (Bool?) -> Void) {
         guard !isDetached else {
             completion(nil)

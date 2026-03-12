@@ -7,7 +7,7 @@ protocol CandlestickSeriesData : OhlcData {
 }
 
 // MARK: -
-public struct CandlestickData : CandlestickSeriesData, Equatable {
+public struct CandlestickData : CandlestickSeriesData, Equatable, Sendable {
     public var time: Time
     public var open: Double?
     public var high: Double?
@@ -16,7 +16,7 @@ public struct CandlestickData : CandlestickSeriesData, Equatable {
     public var color: ChartColor?
     public var borderColor: ChartColor?
     public var wickColor: ChartColor?
-    
+
     public init(time: Time,
                 open: Double?,
                 high: Double?,

@@ -1,6 +1,6 @@
 import Foundation
 
-public struct AxisPressedMouseMoveOptions: Codable {
+public struct AxisPressedMouseMoveOptions: Codable, Sendable {
     
     public var time: Bool?
     public var price: Bool?

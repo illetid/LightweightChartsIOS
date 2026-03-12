@@ -5,11 +5,14 @@ import LightweightCharts
 ///
 /// Shows a candlestick chart on the main pane (pane 0) and a volume histogram
 /// on a separate pane (pane 1), mimicking a typical trading chart layout.
+/// The secondary pane also includes a text watermark to demonstrate that
+/// watermark plugins can target panes other than the main pane.
 class MultiplePanesViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var candlestickSeries: CandlestickSeries!
     private var volumeSeries: HistogramSeries!
+    private var volumePaneWatermark: TextWatermarkPlugin<Chart>?
     private var controlsStackView: UIStackView!
 
     override func viewDidLoad() {
@@ -176,24 +179,39 @@ class MultiplePanesViewController: UIViewController {
         ]
         volumeSeries.setData(data: volumeData)
         self.volumeSeries = volumeSeries
+
+        let watermarkOptions = TextWatermarkOptions(
+            horizontalAlignment: .right,
+            verticalAlignment: .top,
+            lines: [
+                WatermarkLine(
+                    text: "Volume Pane",
+                    color: "rgba(209, 212, 220, 0.45)",
+                    fontSize: 18,
+                    fontFamily: "-apple-system",
+                    fontStyle: "normal"
+                )
+            ]
+        )
+        volumePaneWatermark = chart.createTextWatermarkPlugin(paneIndex: 1, options: watermarkOptions)
     }
 
     @objc private func addPaneTapped() {
-        chart.addPane()
+        _ = chart.addPane()
     }
 
     @objc private func removePaneTapped() {
-        chart.panes { [weak self] panes in
+        Task { @MainActor [weak self] in
             guard let self = self else { return }
-            guard let lastPane = panes.last, lastPane.index > 0 else { return }
+            guard let lastPane = try? await self.chart.panes().last, lastPane.index > 0 else { return }
             self.chart.removePane(index: lastPane.index)
         }
     }
 
     @objc private func swapPanesTapped() {
-        chart.panes { [weak self] panes in
+        Task { @MainActor [weak self] in
             guard let self = self else { return }
-            guard panes.count > 1 else { return }
+            guard let panes = try? await self.chart.panes(), panes.count > 1 else { return }
             self.chart.swapPanes(first: 0, second: 1)
         }
     }

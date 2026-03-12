@@ -51,6 +51,7 @@
 		AA51000300000001AAAAAAAA /* PriceScaleRangeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000300000002AAAAAAAA /* PriceScaleRangeViewController.swift */; };
 		AA51000400000001AAAAAAAA /* DataConflationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000400000002AAAAAAAA /* DataConflationViewController.swift */; };
 		AA51000500000001AAAAAAAA /* PaneSizingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000500000002AAAAAAAA /* PaneSizingViewController.swift */; };
+		AA51000600000001AAAAAAAA /* AsyncAPIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA51000600000002AAAAAAAA /* AsyncAPIViewController.swift */; };
 		CE5054042397AF9400143B03 /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5054032397AF9400143B03 /* TooltipView.swift */; };
 /* End PBXBuildFile section */
 
@@ -92,6 +93,7 @@
 		AA51000300000002AAAAAAAA /* PriceScaleRangeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceScaleRangeViewController.swift; sourceTree = "<group>"; };
 		AA51000400000002AAAAAAAA /* DataConflationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataConflationViewController.swift; sourceTree = "<group>"; };
 		AA51000500000002AAAAAAAA /* PaneSizingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneSizingViewController.swift; sourceTree = "<group>"; };
+		AA51000600000002AAAAAAAA /* AsyncAPIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncAPIViewController.swift; sourceTree = "<group>"; };
 		CE5053CE2397AF6D00143B03 /* ThreeLineLegendViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreeLineLegendViewController.swift; sourceTree = "<group>"; };
 		CE5053CF2397AF6D00143B03 /* CustomFontFamilyViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomFontFamilyViewController.swift; sourceTree = "<group>"; };
 		CE5053D02397AF6D00143B03 /* VolumeStudyViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VolumeStudyViewController.swift; sourceTree = "<group>"; };
@@ -246,6 +248,7 @@
 		CE5053CD2397AF6D00143B03 /* Example */ = {
 			isa = PBXGroup;
 			children = (
+				AA51000600000002AAAAAAAA /* AsyncAPIViewController.swift */,
 				CE5053DD2397AF6D00143B03 /* TableViewController.swift */,
 				CE5053CE2397AF6D00143B03 /* ThreeLineLegendViewController.swift */,
 				CE5053CF2397AF6D00143B03 /* CustomFontFamilyViewController.swift */,
@@ -490,6 +493,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA51000600000001AAAAAAAA /* AsyncAPIViewController.swift in Sources */,
 				A1C3E5002F01000100000001 /* SceneDelegate.swift in Sources */,
 				8C8C292024D163C500EC537E /* PriceScaleAtLeftViewController.swift in Sources */,
 				8C8C292D24D1659200EC537E /* LogarithmicPriceScaleViewController.swift in Sources */,
@@ -611,12 +615,13 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -661,11 +666,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -676,14 +682,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = LightweightCharts/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 3.5.0;
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "tradingview.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -694,14 +701,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = LightweightCharts/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 3.5.0;
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "tradingview.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -722,8 +730,9 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "tradingview.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LightweightCharts_Example.app/LightweightCharts_Example";
 				BUNDLE_LOADER = "$(TEST_HOST)";
 			};
@@ -741,8 +750,9 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "tradingview.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LightweightCharts_Example.app/LightweightCharts_Example";
 				BUNDLE_LOADER = "$(TEST_HOST)";
 			};

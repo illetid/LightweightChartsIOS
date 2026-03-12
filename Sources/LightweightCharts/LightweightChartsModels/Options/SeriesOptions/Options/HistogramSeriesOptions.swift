@@ -1,6 +1,6 @@
 import Foundation
 
-public struct HistogramSeriesOptions: SeriesOptionsCommon {
+public struct HistogramSeriesOptions: SeriesOptionsCommon, Sendable {
     
     public var lastValueVisible: Bool?
     public var title: String?

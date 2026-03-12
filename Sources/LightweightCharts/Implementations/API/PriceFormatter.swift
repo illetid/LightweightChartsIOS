@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 class PriceFormatter: JavaScriptObject {
     
     let jsName = "priceFormatter" + .uniqueString
@@ -9,27 +10,29 @@ class PriceFormatter: JavaScriptObject {
     init(context: JavaScriptEvaluator) {
         self.context = context
     }
+
+    private func requireContext() throws(JavaScriptBridgeError) -> JavaScriptEvaluator {
+        guard let context = context else {
+            throw JavaScriptBridgeError.contextUnavailable
+        }
+        return context
+    }
     
 }
 
 // MARK: - PriceFormatterApi
 extension PriceFormatter: PriceFormatterApi {
-    
-    func format(price: BarPrice, completion: @escaping (String?) -> Void) {
+
+    // MARK: - Async methods (Swift 6)
+
+    func format(price: BarPrice) async throws(JavaScriptBridgeError) -> String {
         let script = "\(jsName).format(\(price));"
-        context?.evaluateScript(script) { (result, _) in
-            completion(result as? String)
-        }
+        return try await requireContext().evaluate(script: script, resultType: String.self)
     }
 
-    func formatTickmarks(prices: [BarPrice], completion: @escaping ([String]?) -> Void) {
-        let script = "JSON.stringify(\(jsName).formatTickmarks(\(prices.jsonString)));"
-        guard let context: any JavaScriptEvaluator else {
-            completion(nil)
-            return
-        }
-
-        context.decodedResult(forScript: script, completion: completion)
+    func formatTickmarks(prices: [BarPrice]) async throws(JavaScriptBridgeError) -> [String] {
+        let script = "\(jsName).formatTickmarks(\(prices.jsonString));"
+        return try await requireContext().decodedResult(forScript: script)
     }
-    
+
 }

@@ -3,7 +3,7 @@ import Foundation
 /**
  Structure describing horizontal or vertical grid line options
  */
-public struct GridLineOptions: Codable {
+public struct GridLineOptions: Codable, Sendable {
     
     /**
      Color of the lines

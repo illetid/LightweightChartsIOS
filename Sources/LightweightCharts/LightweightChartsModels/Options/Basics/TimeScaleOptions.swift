@@ -1,16 +1,17 @@
 import Foundation
 
-public enum ConflationPriority: String, Codable {
+public enum ConflationPriority: String, Codable, Sendable {
     case background
     case userVisible = "user-visible"
     case userBlocking = "user-blocking"
 }
 
-public struct TimeScaleOptions {
+public struct TimeScaleOptions: Sendable {
     
     public var rightOffset: Double?
     public var barSpacing: Double?
     public var minBarSpacing: Double?
+    public var maxBarSpacing: Double?
     public var fixLeftEdge: Bool?
     public var fixRightEdge: Bool?
     public var lockVisibleTimeRangeOnResize: Bool?
@@ -44,6 +45,7 @@ public struct TimeScaleOptions {
     public init(rightOffset: Double? = nil,
                 barSpacing: Double? = nil,
                 minBarSpacing: Double? = nil,
+                maxBarSpacing: Double? = nil,
                 fixLeftEdge: Bool? = nil,
                 fixRightEdge: Bool? = nil,
                 lockVisibleTimeRangeOnResize: Bool? = nil,
@@ -67,6 +69,7 @@ public struct TimeScaleOptions {
         self.rightOffset = rightOffset
         self.barSpacing = barSpacing
         self.minBarSpacing = minBarSpacing
+        self.maxBarSpacing = maxBarSpacing
         self.fixLeftEdge = fixLeftEdge
         self.fixRightEdge = fixRightEdge
         self.lockVisibleTimeRangeOnResize = lockVisibleTimeRangeOnResize
@@ -98,6 +101,7 @@ extension TimeScaleOptions: Codable {
         case rightOffset
         case barSpacing
         case minBarSpacing
+        case maxBarSpacing
         case fixLeftEdge
         case fixRightEdge
         case lockVisibleTimeRangeOnResize
@@ -125,12 +129,9 @@ extension TimeScaleOptions {
     
     func optionsScript(for closuresStore: ClosuresStore?) -> (options: String, variableName: String) {
         let variableName = "options"
-        var optionsScript = "var \(variableName) = \(jsonString);"
-        if let formatter = tickMarkFormatterJSFunction {
-            closuresStore?.addMethod(formatter.function, forName: formatter.name)
-            optionsScript.append("\(variableName).tickMarkFormatter = \(formatter.script());")
-        }
-        return (optionsScript, variableName)
+        var builder = JavaScriptOptionsScriptBuilder(variableName: variableName, baseJSON: jsonString, closuresStore: closuresStore)
+        builder.assign("tickMarkFormatter", formatter: tickMarkFormatterJSFunction)
+        return (builder.script, variableName)
     }
     
 }

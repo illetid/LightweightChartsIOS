@@ -1,6 +1,6 @@
 import Foundation
 
-public enum PriceLineSource: Int, Codable {
+public enum PriceLineSource: Int, Codable, Sendable {
     /**
      * The last bar data
      */

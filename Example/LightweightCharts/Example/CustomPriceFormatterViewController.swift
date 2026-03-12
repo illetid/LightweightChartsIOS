@@ -136,10 +136,6 @@ class CustomPriceFormatterViewController: UIViewController {
             grid: GridOptions(
                 verticalLines: GridLineOptions(color: "rgba(255, 255, 255, 0.2)"),
                 horizontalLines: GridLineOptions(color: "rgba(255, 255, 255, 0.2)")
-            ),
-            localization: LocalizationOptions(
-                priceFormatter: .javaScript(FormatterType.allCases[0].formatterString),
-                tickmarksPriceFormatter: .javaScript(FormatterType.allCases[0].tickmarkFormatterString)
             )
         )
         let chart = LightweightCharts(options: options)
@@ -164,6 +160,8 @@ class CustomPriceFormatterViewController: UIViewController {
     }
     
     private func setupData() {
+        guard series == nil else { return }
+
         let options = AreaSeriesOptions(
             topColor: "rgba(21, 101, 192, 0.5)",
             bottomColor: "rgba(21, 101, 192, 0.5)",
@@ -327,27 +325,33 @@ class CustomPriceFormatterViewController: UIViewController {
         ]
         series.setData(data: data)
         self.series = series
+        updateFormatter()
     }
 
     private func updateFormatter() {
-        let priceFormatter: JavaScriptMethod<BarPrice, String>
-        let tickmarksPriceFormatter: JavaScriptMethod<[BarPrice], [String]>
+        guard let series else { return }
+
+        let priceFormat: PriceFormat
         switch selectedSource {
         case .js:
-            priceFormatter = .javaScript(selectedFormat.formatterString)
-            tickmarksPriceFormatter = .javaScript(selectedFormat.tickmarkFormatterString)
+            priceFormat = .custom(
+                CustomPriceFormat(
+                    minMove: 0.01,
+                    formatterJavaScript: selectedFormat.formatterString,
+                    tickmarksFormatterJavaScript: selectedFormat.tickmarkFormatterString
+                )
+            )
         case .native:
-            priceFormatter = .closure(selectedFormat.formatterClosure)
-            tickmarksPriceFormatter = .closure(selectedFormat.tickmarkFormatterClosure)
+            priceFormat = .custom(
+                CustomPriceFormat(
+                    minMove: 0.01,
+                    formatter: selectedFormat.formatterClosure,
+                    tickmarksFormatter: selectedFormat.tickmarkFormatterClosure
+                )
+            )
         }
 
-        let options = ChartOptions(
-            localization: LocalizationOptions(
-                priceFormatter: priceFormatter,
-                tickmarksPriceFormatter: tickmarksPriceFormatter
-            )
-        )
-        chart.applyOptions(options: options)
+        series.applyOptions(options: AreaSeriesOptions(priceFormat: priceFormat))
     }
     
     @objc private func formatterValueChanged(_ sender: UISegmentedControl) {

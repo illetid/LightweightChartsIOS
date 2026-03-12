@@ -172,10 +172,6 @@ class RealtimeEmulationViewController: UIViewController {
     
     private var timer: Timer?
     
-    deinit {
-        timer?.invalidate()
-    }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         if #available(iOS 13.0, *) {
@@ -187,6 +183,11 @@ class RealtimeEmulationViewController: UIViewController {
         setupChart()
         setupSeries()
         startSimulation()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        stopSimulation()
     }
     
     private func setupChart() {
@@ -219,13 +220,19 @@ class RealtimeEmulationViewController: UIViewController {
 
     private func startSimulation() {
         series.setData(data: data)
-        
+
+        stopSimulation()
+        timer = Timer(timeInterval: 0.2, target: self, selector: #selector(handleTimerTick), userInfo: nil, repeats: true)
+        RunLoop.main.add(timer!, forMode: .common)
+    }
+
+    private func stopSimulation() {
         timer?.invalidate()
-        timer = .scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] timer in
-            guard let self = self else { return }
-            self.tick()
-        }
-        RunLoop.current.add(timer!, forMode: .common)
+        timer = nil
+    }
+
+    @objc private func handleTimerTick() {
+        tick()
     }
     
     private func tick() {
