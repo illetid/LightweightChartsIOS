@@ -5,11 +5,16 @@ class FloatingTooltipViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var series: AreaSeries!
+    private var crosshairTask: Task<Void, Never>?
     private let tooltipView = TooltipView(accentColor: UIColor(red: 0, green: 150/255.0, blue: 136/255.0, alpha: 1))
     private let legend = "Apple Inc."
     
     private var centerXConstraint: NSLayoutConstraint!
     private var bottomConstraint: NSLayoutConstraint!
+
+    deinit {
+        crosshairTask?.cancel()
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -396,40 +401,36 @@ class FloatingTooltipViewController: UIViewController {
     }
     
     private func setupSubscription() {
-        chart.delegate = self
-        chart.subscribeCrosshairMove()
+        crosshairTask?.cancel()
+        crosshairTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await parameters in self.chart.crosshairMoveEvents {
+                self.handleCrosshairMove(parameters)
+            }
+        }
     }
-    
-}
 
-// MARK: - ChartDelegate
-extension FloatingTooltipViewController: ChartDelegate {
-    
-    func didClick(onChart chart: ChartApi, parameters: MouseEventParams) {
-        
-    }
-    
-    func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams) {
+    private func handleCrosshairMove(_ parameters: MouseEventParams) {
         if case let .businessDayString(date) = parameters.time,
             let point = parameters.point,
-            case let .lineData(price) = parameters.price(forSeries: series) {
-            self.series.priceToCoordinate(price: price.value!) { [weak self] in
+            let price = parameters.data(forSeries: series),
+            let value = price.value {
+            Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                if let coordinate = $0 {
+                do {
+                    guard let coordinate = try await self.series.priceToCoordinate(price: value) else { return }
                     let dateString = date
-                    self.tooltipView.update(title: self.legend, price: price.value!, date: dateString)
+                    self.tooltipView.update(title: self.legend, price: value, date: dateString)
                     self.tooltipView.isHidden = false
                     self.centerXConstraint.constant = CGFloat(point.x)
                     self.bottomConstraint.constant = CGFloat(coordinate) - 16
+                } catch {
+                    self.tooltipView.isHidden = true
                 }
             }
         } else {
-            self.tooltipView.isHidden = true
+            tooltipView.isHidden = true
         }
-    }
-    
-    func didVisibleTimeRangeChange(onChart chart: ChartApi, parameters: TimeRange?) {
-        
     }
     
 }

@@ -6,6 +6,7 @@ class NoTimeScaleViewController: UIViewController {
     private var chart: LightweightCharts!
     private var areaSeries: AreaSeries!
     private var volumeSeries: HistogramSeries!
+    private var crosshairTask: Task<Void, Never>?
     private let legendLabel = UILabel()
     private let dateFormatter: DateFormatter = {
         let dateFormatter = DateFormatter()
@@ -14,6 +15,10 @@ class NoTimeScaleViewController: UIViewController {
     }()
     
     private var leadingConstraint: NSLayoutConstraint!
+
+    deinit {
+        crosshairTask?.cancel()
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -417,28 +422,25 @@ class NoTimeScaleViewController: UIViewController {
     }
 
     private func setupSubscription() {
-        chart.delegate = self
-        chart.subscribeCrosshairMove()
+        crosshairTask?.cancel()
+        crosshairTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await parameters in self.chart.crosshairMoveEvents {
+                self.handleCrosshairMove(parameters)
+            }
+        }
     }
-    
-}
 
-// MARK: - ChartDelegate
-extension NoTimeScaleViewController: ChartDelegate {
-    
-    func didClick(onChart chart: ChartApi, parameters: MouseEventParams) {
-        
-    }
-    
-    func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams) {
-        guard case let .lineData(price) = parameters.price(forSeries: areaSeries),
+    private func handleCrosshairMove(_ parameters: MouseEventParams) {
+        guard let price = parameters.data(forSeries: areaSeries),
+            let value = price.value,
             let time = parameters.time,
             let point = parameters.point
             else {
                 legendLabel.isHidden = true
                 return
         }
-        
+
         let dateString: String
         switch time {
         case let .businessDay(time):
@@ -449,16 +451,12 @@ extension NoTimeScaleViewController: ChartDelegate {
         case let .businessDayString(time):
             dateString = time
         }
-        
-        legendLabel.text = "\((price.value! * 100 / 100).rounded()) | \(dateString)"
+
+        legendLabel.text = "\((value * 100 / 100).rounded()) | \(dateString)"
         legendLabel.isHidden = false
         let leading = CGFloat(point.x) - legendLabel.frame.width / 2
-        let constant = max(0, min(self.chart.frame.width - legendLabel.frame.width, leading))
+        let constant = max(0, min(chart.frame.width - legendLabel.frame.width, leading))
         leadingConstraint.constant = constant
-    }
-    
-    func didVisibleTimeRangeChange(onChart chart: ChartApi, parameters: TimeRange?) {
-        
     }
     
 }
