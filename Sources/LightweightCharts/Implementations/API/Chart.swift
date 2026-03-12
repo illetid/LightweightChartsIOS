@@ -480,7 +480,7 @@ public func clearCrosshairPosition() {
     
     public func priceScale(priceScaleId: String?, paneIndex: Int? = nil) -> PriceScaleApi {
         let priceScale = PriceScale(context: context)
-        let priceScaleId = priceScaleId ?? ""
+        let priceScaleId = priceScaleId ?? "right"
         let script: String
         if let paneIndex {
             script = "window['\(priceScale.jsName)'] = \(jsName).priceScale(\(priceScaleId.jsonString()), \(paneIndex));"
@@ -684,7 +684,9 @@ public extension ChartDelegate {
 @MainActor
 final class Pane: PaneApi {
 
-    /// Snapshot of the pane index at creation time.
+    /// Initial pane index hint for this handle.
+    ///
+    /// Use `currentIndex()` for authoritative index reads.
     let index: Int
 
     private let chartJSName: String

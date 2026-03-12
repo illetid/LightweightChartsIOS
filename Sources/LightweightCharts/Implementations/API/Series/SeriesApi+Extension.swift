@@ -194,6 +194,10 @@ public extension SeriesApi where Self: SeriesObject {
     // MARK: - Private helpers
 
     private func setSeriesData<T: SeriesData>(_ data: [T]) {
+        guard validateSeriesDataBeforeSet(data) else {
+            return
+        }
+
         // Update last data time tracking
         if let last = data.last {
             _lastDataTime = last.time
@@ -206,6 +210,10 @@ public extension SeriesApi where Self: SeriesObject {
     }
 
     private func updateSeriesBar<T: SeriesData>(_ bar: T, historicalUpdate: Bool?) {
+        guard validateSeriesBarBeforeUpdate(bar) else {
+            return
+        }
+
         // Update last data time tracking
         _lastDataTime = bar.time
 
@@ -215,6 +223,56 @@ public extension SeriesApi where Self: SeriesObject {
         }
         script += ");"
         context.submitScript(script)
+    }
+
+    private func validateSeriesDataBeforeSet<T: SeriesData>(_ data: [T]) -> Bool {
+        guard _validationEnabled else {
+            return true
+        }
+
+        do {
+            try sharedSeriesDataValidator.validate(data: data)
+            return true
+        } catch {
+            logValidationFailure(error, operation: "setData")
+            return false
+        }
+    }
+
+    private func validateSeriesBarBeforeUpdate<T: SeriesData>(_ bar: T) -> Bool {
+        guard _validationEnabled else {
+            return true
+        }
+
+        do {
+            try sharedSeriesDataValidator.validateUpdate(bar: bar, latestData: nil as T?)
+
+            if let latestTime = _lastDataTime {
+                guard let comparison = bar.time.compare(latestTime), comparison >= 0 else {
+                    throw SeriesDataValidationError.updateTimeBeforeLatest(
+                        updateTime: bar.time,
+                        latestTime: latestTime
+                    )
+                }
+            }
+
+            return true
+        } catch {
+            logValidationFailure(error, operation: "update")
+            return false
+        }
+    }
+
+    private func logValidationFailure(_ error: Error, operation: String) {
+        let description: String
+        if let localizedError = error as? LocalizedError,
+            let errorDescription = localizedError.errorDescription {
+            description = errorDescription
+        } else {
+            description = error.localizedDescription
+        }
+
+        NSLog("LWChart: \(operation) validation failed for \(jsName): \(description)")
     }
 
     // MARK: - Plugin Factories

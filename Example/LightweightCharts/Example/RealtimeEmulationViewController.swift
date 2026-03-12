@@ -165,6 +165,18 @@ class RealtimeEmulationViewController: UIViewController {
     private var ticksInCurrentBar = 0
     private var currentBusinessDay = BusinessDay(year: 2019, month: 5, day: 29)
     private lazy var currentBar = CandlestickData(time: .businessDay(currentBusinessDay), open: nil, high: nil, low: nil, close: nil)
+    private lazy var initialBusinessDayData: [CandlestickData] = {
+        data.map { item in
+            guard case .string(let rawDate) = item.time,
+                let businessDay = businessDay(from: rawDate) else {
+                return item
+            }
+
+            var converted = item
+            converted.time = .businessDay(businessDay)
+            return converted
+        }
+    }()
     
     private var randomPrice: Double {
         10 + .random(in: 0...1) * 10000 / 100
@@ -219,7 +231,7 @@ class RealtimeEmulationViewController: UIViewController {
     }
 
     private func startSimulation() {
-        series.setData(data: data)
+        series.setData(data: initialBusinessDayData)
 
         stopSimulation()
         timer = Timer(timeInterval: 0.2, target: self, selector: #selector(handleTimerTick), userInfo: nil, repeats: true)
@@ -281,7 +293,7 @@ class RealtimeEmulationViewController: UIViewController {
     }
     
     private func reset() {
-        series.setData(data: data)
+        series.setData(data: initialBusinessDayData)
         
         lastClose = data.last!.close
         lastIndex = data.endIndex - 1
@@ -291,22 +303,65 @@ class RealtimeEmulationViewController: UIViewController {
         
         currentIndex = lastIndex + 1
         currentBusinessDay = BusinessDay(year: 2019, month: 5, day: 29)
+        currentBar = CandlestickData(time: .businessDay(currentBusinessDay), open: nil, high: nil, low: nil, close: nil)
         ticksInCurrentBar = 0
     }
-    
-    func nextBusinessDay(_ time: BusinessDay) -> BusinessDay {
-        let timeZone = TimeZone(identifier: "UTC")!
-        let dateComponents = DateComponents(
-            calendar: .current,
-            timeZone: timeZone,
-            year: time.year,
-            month: time.month - 1,
-            day: time.day + 1
+
+    private func businessDay(from value: String) -> BusinessDay? {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        guard let date = formatter.date(from: value) else {
+            return nil
+        }
+
+        let calendar = Calendar(identifier: .gregorian)
+        let components = calendar.dateComponents(in: formatter.timeZone, from: date)
+        guard let year = components.year,
+            let month = components.month,
+            let day = components.day else {
+            return nil
+        }
+
+        return BusinessDay(year: year, month: month, day: day)
+    }
+
+    private func nextBusinessDay(_ value: BusinessDay) -> BusinessDay {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+
+        let components = DateComponents(
+            calendar: calendar,
+            timeZone: calendar.timeZone,
+            year: value.year,
+            month: value.month,
+            day: value.day
         )
-        let date = Calendar.current.date(from: dateComponents)!
-        let components = Calendar.current.dateComponents(in: timeZone, from: date)
-        return BusinessDay(year: components.year!, month: components.month! + 1, day: components.day!)
+
+        guard let date = calendar.date(from: components) else {
+            return value
+        }
+
+        var next = date
+        while true {
+            next = calendar.date(byAdding: .day, value: 1, to: next) ?? next
+            let weekday = calendar.component(.weekday, from: next)
+            if weekday != 1 && weekday != 7 {
+                break
+            }
+        }
+
+        let result = calendar.dateComponents(in: calendar.timeZone, from: next)
+        guard let year = result.year,
+            let month = result.month,
+            let day = result.day else {
+            return value
+        }
+
+        return BusinessDay(year: year, month: month, day: day)
     }
     
 }
-

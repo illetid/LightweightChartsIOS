@@ -7,9 +7,10 @@ public protocol PaneApi: AnyObject {
     /// the JavaScript evaluation fails, the result shape is invalid, decoding fails, or
     /// the caller cancels the operation.
 
-    /// The pane index at the time this handle was created.
+    /// Initial pane index hint for this handle.
     ///
-    /// This value is not updated after pane reordering or removal.
+    /// This value is not guaranteed to stay current after pane reordering, removal,
+    /// or creation flows that resolve pane position lazily.
     /// Use `currentIndex()` to query the live pane position.
     var index: Int { get }
 
@@ -302,7 +303,7 @@ public protocol ChartApi: AnyObject {
     // MARK: - Other APIs and options methods
     /**
      * Returns API to manipulate the price scale
-     * - Parameter priceScaleID: id of scale to access to
+     * - Parameter priceScaleID: id of scale to access to. `nil` resolves to the default right price scale.
      * - Returns: target API
      */
     func priceScale(priceScaleId: String?, paneIndex: Int?) -> PriceScaleApi

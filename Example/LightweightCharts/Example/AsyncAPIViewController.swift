@@ -9,6 +9,7 @@ final class AsyncAPIViewController: UIViewController {
     private var snapshotTask: Task<Void, Never>?
     private var crosshairTask: Task<Void, Never>?
     private var clickTask: Task<Void, Never>?
+    private var doubleClickTask: Task<Void, Never>?
     private var clickCount = 0
 
     private let summaryLabel = UILabel()
@@ -18,6 +19,7 @@ final class AsyncAPIViewController: UIViewController {
         snapshotTask?.cancel()
         crosshairTask?.cancel()
         clickTask?.cancel()
+        doubleClickTask?.cancel()
     }
 
     override func viewDidLoad() {
@@ -59,10 +61,27 @@ final class AsyncAPIViewController: UIViewController {
         fitButton.setTitle("Fit Content", for: .normal)
         fitButton.addTarget(self, action: #selector(fitContentTapped), for: .touchUpInside)
 
-        let buttons = UIStackView(arrangedSubviews: [refreshButton, fitButton])
-        buttons.axis = .horizontal
-        buttons.spacing = 12
-        buttons.distribution = .fillEqually
+        let readScalesButton = UIButton(type: .system)
+        readScalesButton.setTitle("Read Scales", for: .normal)
+        readScalesButton.addTarget(self, action: #selector(readScalesTapped), for: .touchUpInside)
+
+        let screenshotButton = UIButton(type: .system)
+        screenshotButton.setTitle("Take Screenshot", for: .normal)
+        screenshotButton.addTarget(self, action: #selector(takeScreenshotTapped), for: .touchUpInside)
+
+        let topButtons = UIStackView(arrangedSubviews: [refreshButton, fitButton])
+        topButtons.axis = .horizontal
+        topButtons.spacing = 12
+        topButtons.distribution = .fillEqually
+
+        let bottomButtons = UIStackView(arrangedSubviews: [readScalesButton, screenshotButton])
+        bottomButtons.axis = .horizontal
+        bottomButtons.spacing = 12
+        bottomButtons.distribution = .fillEqually
+
+        let buttons = UIStackView(arrangedSubviews: [topButtons, bottomButtons])
+        buttons.axis = .vertical
+        buttons.spacing = 8
         buttons.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(summaryLabel)
@@ -87,7 +106,7 @@ final class AsyncAPIViewController: UIViewController {
             buttons.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 12),
             buttons.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -12),
             buttons.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: -8),
-            buttons.heightAnchor.constraint(equalToConstant: 44)
+            buttons.heightAnchor.constraint(equalToConstant: 96)
         ])
     }
 
@@ -126,6 +145,7 @@ final class AsyncAPIViewController: UIViewController {
     private func startEventStreams() {
         crosshairTask?.cancel()
         clickTask?.cancel()
+        doubleClickTask?.cancel()
 
         crosshairTask = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -139,6 +159,13 @@ final class AsyncAPIViewController: UIViewController {
             for await event in self.chart.clickEvents {
                 self.clickCount += 1
                 self.eventLabel.text = "click #\(self.clickCount) at \(self.timeText(for: event.time))"
+            }
+        }
+
+        doubleClickTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await event in self.chart.doubleClickEvents {
+                self.eventLabel.text = "double-click at \(self.timeText(for: event.time))"
             }
         }
     }
@@ -156,8 +183,12 @@ final class AsyncAPIViewController: UIViewController {
                     let formatter = series.priceFormatter()
                     let formattedLastValue = try await formatter.format(price: lastValue.price ?? 0)
                     let priceLines = try await series.priceLines()
+                    let seriesType = try await series.seriesType()
+                    let seriesOrder = try await series.seriesOrder()
 
                     snapshotLines.append("last value: \(formattedLastValue)")
+                    snapshotLines.append("series type: \(seriesType.rawValue)")
+                    snapshotLines.append("series order: \(seriesOrder)")
                     snapshotLines.append("price lines: \(priceLines.count)")
 
                     if let priceLine = self.priceLine {
@@ -166,10 +197,77 @@ final class AsyncAPIViewController: UIViewController {
                     }
                 }
 
+                let timeScale = self.chart.timeScale()
+                let width = try await timeScale.width()
+                let height = try await timeScale.height()
+                let nearestIndex = try await timeScale.timeToIndex(time: .string("2024-01-08"), findNearest: true)
+                snapshotLines.append("time scale size: \(Int(width))x\(Int(height))")
+                snapshotLines.append("nearest index (2024-01-08): \(nearestIndex.map(String.init) ?? "n/a")")
+
+                let rightScale = self.chart.priceScale(priceScaleId: nil)
+                let visibleRange = try await rightScale.getVisibleRange()
+                if let visibleRange {
+                    snapshotLines.append(String(format: "right scale: %.2f..%.2f", visibleRange.from, visibleRange.to))
+                } else {
+                    snapshotLines.append("right scale: unavailable")
+                }
+
                 self.summaryLabel.text = snapshotLines.joined(separator: "\n")
             } catch is CancellationError {
             } catch {
                 self.summaryLabel.text = "async read failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func readScales() {
+        snapshotTask?.cancel()
+        snapshotTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            do {
+                let timeScale = self.chart.timeScale()
+                let visibleRange = try await timeScale.getVisibleRange()
+                let visibleLogicalRange = try await timeScale.getVisibleLogicalRange()
+                let rightScale = self.chart.priceScale(priceScaleId: nil)
+                let priceRange = try await rightScale.getVisibleRange()
+
+                var lines: [String] = []
+                if let visibleRange {
+                    lines.append("time range: \(self.timeText(for: visibleRange.from)) -> \(self.timeText(for: visibleRange.to))")
+                } else {
+                    lines.append("time range: unavailable")
+                }
+
+                if let visibleLogicalRange {
+                    lines.append(String(format: "logical: %.2f -> %.2f", visibleLogicalRange.from, visibleLogicalRange.to))
+                } else {
+                    lines.append("logical: unavailable")
+                }
+
+                if let priceRange {
+                    lines.append(String(format: "price: %.2f -> %.2f", priceRange.from, priceRange.to))
+                } else {
+                    lines.append("price: unavailable")
+                }
+
+                self.summaryLabel.text = lines.joined(separator: "\n")
+            } catch {
+                self.summaryLabel.text = "scale read failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func takeScreenshot() {
+        snapshotTask?.cancel()
+        snapshotTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            do {
+                let image = try await self.chart.takeScreenshot(addTopLayer: true, includeCrosshair: true)
+                self.summaryLabel.text = "screenshot: \(Int(image.size.width))x\(Int(image.size.height))"
+            } catch {
+                self.summaryLabel.text = "screenshot failed: \(error.localizedDescription)"
             }
         }
     }
@@ -224,6 +322,14 @@ final class AsyncAPIViewController: UIViewController {
     @objc private func fitContentTapped() {
         chart.timeScale().fitContent()
         refreshSnapshot()
+    }
+
+    @objc private func readScalesTapped() {
+        readScales()
+    }
+
+    @objc private func takeScreenshotTapped() {
+        takeScreenshot()
     }
 }
 

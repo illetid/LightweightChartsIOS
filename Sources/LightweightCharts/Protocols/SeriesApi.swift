@@ -123,6 +123,18 @@ public protocol SeriesApi: AnyObject {
 
     func unsubscribeDataChanged()
 
+    /**
+     * Enables or disables Swift-side data validation for `setData` and `update` calls.
+     * Validation is disabled by default for backward compatibility.
+     * - Parameter enabled: true to validate before bridge submission, false to bypass local checks.
+     */
+    func setDataValidationEnabled(_ enabled: Bool)
+
+    /**
+     * Returns whether Swift-side data validation is currently enabled.
+     */
+    var isDataValidationEnabled: Bool { get }
+
     // MARK: - Async methods (Swift 6)
 
     /**

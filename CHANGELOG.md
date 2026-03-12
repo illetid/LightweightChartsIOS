@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `setSeriesOrder(_:)` - set series order
 - `pop(count:)` - remove last N data points from series
 - `lastValueData(_:)` - get series last value data with optional price range
+- `setDataValidationEnabled(_:)` - enable/disable Swift-side time/order validation for `setData` and `update`
+- `isDataValidationEnabled` - inspect current validation state for a series
 
 #### Price Scale API
 - `setVisibleRange(_:)` - set visible price range
@@ -50,6 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All async methods now use `throws(JavaScriptBridgeError)` for typed error handling
 - `AsyncStream` properties for event subscriptions in `ChartApi`
 - Plugin creation scripts submitted in call order for immediate usability
+- Swift-side series data validation for `setData`/`update` is available as an opt-in compatibility guard via `setDataValidationEnabled(true)`
 
 ### Migration Notes
 

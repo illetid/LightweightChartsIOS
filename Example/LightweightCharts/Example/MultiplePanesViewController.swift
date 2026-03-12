@@ -14,6 +14,7 @@ class MultiplePanesViewController: UIViewController {
     private var volumeSeries: HistogramSeries!
     private var volumePaneWatermark: TextWatermarkPlugin<Chart>?
     private var controlsStackView: UIStackView!
+    private let statusLabel = UILabel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -40,13 +41,33 @@ class MultiplePanesViewController: UIViewController {
         swapButton.setTitle("Swap 0 ↔ 1", for: .normal)
         swapButton.addTarget(self, action: #selector(swapPanesTapped), for: .touchUpInside)
 
-        let controlsStackView = UIStackView(arrangedSubviews: [addButton, removeButton, swapButton])
-        controlsStackView.axis = .horizontal
-        controlsStackView.distribution = .fillEqually
+        let inspectButton = UIButton(type: .system)
+        inspectButton.setTitle("Inspect Panes", for: .normal)
+        inspectButton.addTarget(self, action: #selector(inspectPanesTapped), for: .touchUpInside)
+
+        let topRow = UIStackView(arrangedSubviews: [addButton, removeButton])
+        topRow.axis = .horizontal
+        topRow.distribution = .fillEqually
+        topRow.spacing = 8
+
+        let bottomRow = UIStackView(arrangedSubviews: [swapButton, inspectButton])
+        bottomRow.axis = .horizontal
+        bottomRow.distribution = .fillEqually
+        bottomRow.spacing = 8
+
+        let controlsStackView = UIStackView(arrangedSubviews: [topRow, bottomRow])
+        controlsStackView.axis = .vertical
         controlsStackView.spacing = 8
         controlsStackView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(controlsStackView)
         self.controlsStackView = controlsStackView
+
+        statusLabel.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        statusLabel.textColor = .secondaryLabel
+        statusLabel.numberOfLines = 0
+        statusLabel.text = "Panes: loading..."
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(statusLabel)
 
         let options = ChartOptions(
             layout: LayoutOptions(background: .solid(color: "#131722"), textColor: "#d1d4dc"),
@@ -67,24 +88,32 @@ class MultiplePanesViewController: UIViewController {
                 chart.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
                 chart.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
                 chart.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-                chart.bottomAnchor.constraint(equalTo: controlsStackView.topAnchor, constant: -12),
+                chart.bottomAnchor.constraint(equalTo: statusLabel.topAnchor, constant: -8),
+
+                statusLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
+                statusLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+                statusLabel.bottomAnchor.constraint(equalTo: controlsStackView.topAnchor, constant: -8),
 
                 controlsStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
                 controlsStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
                 controlsStackView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
-                controlsStackView.heightAnchor.constraint(equalToConstant: 44)
+                controlsStackView.heightAnchor.constraint(equalToConstant: 96)
             ])
         } else {
             NSLayoutConstraint.activate([
                 chart.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 chart.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 chart.topAnchor.constraint(equalTo: view.topAnchor),
-                chart.bottomAnchor.constraint(equalTo: controlsStackView.topAnchor, constant: -12),
+                chart.bottomAnchor.constraint(equalTo: statusLabel.topAnchor, constant: -8),
+
+                statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+                statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+                statusLabel.bottomAnchor.constraint(equalTo: controlsStackView.topAnchor, constant: -8),
 
                 controlsStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
                 controlsStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
                 controlsStackView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8),
-                controlsStackView.heightAnchor.constraint(equalToConstant: 44)
+                controlsStackView.heightAnchor.constraint(equalToConstant: 96)
             ])
         }
         self.chart = chart
@@ -194,17 +223,22 @@ class MultiplePanesViewController: UIViewController {
             ]
         )
         volumePaneWatermark = chart.createTextWatermarkPlugin(paneIndex: 1, options: watermarkOptions)
+        refreshPaneStatus()
     }
 
     @objc private func addPaneTapped() {
         _ = chart.addPane()
+        refreshPaneStatus()
     }
 
     @objc private func removePaneTapped() {
         Task { @MainActor [weak self] in
             guard let self = self else { return }
-            guard let lastPane = try? await self.chart.panes().last, lastPane.index > 0 else { return }
-            self.chart.removePane(index: lastPane.index)
+            guard let panes = try? await self.chart.panes() else { return }
+            guard let lastPane = panes.last else { return }
+            guard let liveIndex = try? await lastPane.currentIndex(), liveIndex > 0 else { return }
+            self.chart.removePane(index: liveIndex)
+            self.refreshPaneStatus()
         }
     }
 
@@ -213,6 +247,28 @@ class MultiplePanesViewController: UIViewController {
             guard let self = self else { return }
             guard let panes = try? await self.chart.panes(), panes.count > 1 else { return }
             self.chart.swapPanes(first: 0, second: 1)
+            self.refreshPaneStatus()
+        }
+    }
+
+    @objc private func inspectPanesTapped() {
+        refreshPaneStatus()
+    }
+
+    private func refreshPaneStatus() {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let panes = try await self.chart.panes()
+                var details: [String] = []
+                for pane in panes {
+                    let current = try await pane.currentIndex()
+                    details.append("hint \(pane.index) -> live \(current)")
+                }
+                self.statusLabel.text = "Panes: \(details.joined(separator: " | "))"
+            } catch {
+                self.statusLabel.text = "Panes: unavailable"
+            }
         }
     }
 }

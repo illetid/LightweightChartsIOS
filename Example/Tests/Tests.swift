@@ -162,6 +162,67 @@ final class Tests: XCTestCase {
         XCTAssertTrue(bridge.submittedScripts[1].contains("\(series.jsName).update("))
     }
 
+    func testSeriesSetDataRejectsDuplicateTimesBeforeBridgeSubmit() {
+        let bridge = MockBridge()
+        let series = LineSeries(context: bridge, closureStore: nil)
+        series.setDataValidationEnabled(true)
+
+        series.setData(data: [
+            LineData(time: .utc(timestamp: 1), value: 10),
+            LineData(time: .utc(timestamp: 1), value: 11)
+        ])
+
+        XCTAssertEqual(bridge.submittedScripts.count, 0)
+    }
+
+    func testSeriesUpdateRejectsEarlierTimeBeforeBridgeSubmit() {
+        let bridge = MockBridge()
+        let series = LineSeries(context: bridge, closureStore: nil)
+        series.setDataValidationEnabled(true)
+
+        series.setData(data: [
+            LineData(time: .utc(timestamp: 2), value: 12)
+        ])
+        series.update(bar: LineData(time: .utc(timestamp: 1), value: 11))
+
+        XCTAssertEqual(bridge.submittedScripts.count, 1)
+        XCTAssertTrue(bridge.submittedScripts[0].contains("\(series.jsName).setData("))
+    }
+
+    func testSeriesValidationCanBeDisabledForSetData() {
+        let bridge = MockBridge()
+        let series = LineSeries(context: bridge, closureStore: nil)
+
+        XCTAssertFalse(series.isDataValidationEnabled)
+        series.setDataValidationEnabled(true)
+        XCTAssertTrue(series.isDataValidationEnabled)
+        series.setDataValidationEnabled(false)
+        XCTAssertFalse(series.isDataValidationEnabled)
+
+        series.setData(data: [
+            LineData(time: .utc(timestamp: 1), value: 10),
+            LineData(time: .utc(timestamp: 1), value: 11)
+        ])
+
+        XCTAssertEqual(bridge.submittedScripts.count, 1)
+        XCTAssertTrue(bridge.submittedScripts[0].contains("\(series.jsName).setData("))
+    }
+
+    func testSeriesValidationCanBeDisabledForMixedTimeUpdate() {
+        let bridge = MockBridge()
+        let series = LineSeries(context: bridge, closureStore: nil)
+
+        series.setData(data: [
+            LineData(time: .utc(timestamp: 1), value: 10)
+        ])
+        series.setDataValidationEnabled(false)
+        series.update(bar: LineData(time: .string("2019-01-02"), value: 11))
+
+        XCTAssertEqual(bridge.submittedScripts.count, 2)
+        XCTAssertTrue(bridge.submittedScripts[0].contains("\(series.jsName).setData("))
+        XCTAssertTrue(bridge.submittedScripts[1].contains("\(series.jsName).update("))
+    }
+
     func testPaneMutationsSubmitInCallOrder() {
         let bridge = MockBridge()
         let chart = Chart(context: bridge, closureStore: nil)
@@ -962,6 +1023,17 @@ final class Tests: XCTestCase {
         XCTAssertEqual(bridge.submittedScripts.count, 1)
         let identifier = try! tryUnwrapCreatedIdentifier(in: bridge.submittedScripts[0], prefix: "priceScale")
         XCTAssertTrue(bridge.submittedScripts[0].contains("window['\(identifier)'] = \(chart.jsName).priceScale(\"left\", 2);"))
+    }
+
+    func testChartPriceScaleNilDefaultsToRightScale() {
+        let bridge = MockBridge()
+        let chart = Chart(context: bridge, closureStore: nil)
+
+        _ = chart.priceScale(priceScaleId: nil)
+
+        XCTAssertEqual(bridge.submittedScripts.count, 1)
+        let identifier = try! tryUnwrapCreatedIdentifier(in: bridge.submittedScripts[0], prefix: "priceScale")
+        XCTAssertTrue(bridge.submittedScripts[0].contains("window['\(identifier)'] = \(chart.jsName).priceScale(\"right\");"))
     }
 
     func testTimeScaleSupportsAsyncIndexAndSizeReads() async throws {

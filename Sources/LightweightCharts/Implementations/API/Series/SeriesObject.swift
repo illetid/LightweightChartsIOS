@@ -24,7 +24,15 @@ public class SeriesObject: JavaScriptObject {
     internal var _lastDataTime: Time?
 
     /// Whether validation is enabled for this series
-    internal var _validationEnabled: Bool = true
+    internal var _validationEnabled: Bool = false
+
+    public var isDataValidationEnabled: Bool {
+        _validationEnabled
+    }
+
+    public func setDataValidationEnabled(_ enabled: Bool) {
+        _validationEnabled = enabled
+    }
 
     required init(context: JavaScriptEvaluator, closureStore: ClosuresStore?) {
         self.jsName = Self.name + .uniqueString
