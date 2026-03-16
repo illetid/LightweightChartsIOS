@@ -307,6 +307,31 @@ final class Tests: XCTestCase {
         }
     }
 
+    func testChartAsyncReadsThrowWhenContextIsGone() async {
+        var bridge: MockBridge? = MockBridge()
+        let chart = Chart(context: try! XCTUnwrap(bridge), closureStore: nil)
+        weak var releasedBridge = bridge
+
+        bridge = nil
+
+        XCTAssertNil(releasedBridge)
+        XCTAssertNil(chart.context)
+
+        chart.applyOptions(options: ChartOptions(width: 320, height: 180))
+
+        do {
+            _ = try await chart.options()
+            XCTFail("Expected options() to throw when chart context is unavailable")
+        } catch let error as JavaScriptBridgeError {
+            guard case .contextUnavailable = error else {
+                XCTFail("Expected contextUnavailable, got \(error)")
+                return
+            }
+        } catch {
+            XCTFail("Expected JavaScriptBridgeError.contextUnavailable, got \(error)")
+        }
+    }
+
     func testSeriesMutationFamiliesSubmitInCallOrder() {
         let bridge = MockBridge()
         let series = LineSeries(context: bridge, closureStore: nil)
@@ -324,6 +349,31 @@ final class Tests: XCTestCase {
         XCTAssertTrue(bridge.submittedScripts[2].contains("window['\(priceLine.jsName)'] = \(series.jsName).createPriceLine("))
         XCTAssertTrue(bridge.submittedScripts[3].contains("\(series.jsName).removePriceLine(\(priceLine.jsName));"))
         XCTAssertTrue(bridge.submittedScripts[4].contains("\(series.jsName).setSeriesOrder(2);"))
+    }
+
+    func testSeriesAsyncReadsThrowWhenContextIsGone() async {
+        var bridge: MockBridge? = MockBridge()
+        let series = LineSeries(context: try! XCTUnwrap(bridge), closureStore: nil)
+        weak var releasedBridge = bridge
+
+        bridge = nil
+
+        XCTAssertNil(releasedBridge)
+        XCTAssertNil(series.context)
+
+        series.setData(data: [LineData(time: .utc(timestamp: 1), value: 10)])
+
+        do {
+            _ = try await series.seriesOrder()
+            XCTFail("Expected seriesOrder() to throw when series context is unavailable")
+        } catch let error as JavaScriptBridgeError {
+            guard case .contextUnavailable = error else {
+                XCTFail("Expected contextUnavailable, got \(error)")
+                return
+            }
+        } catch {
+            XCTFail("Expected JavaScriptBridgeError.contextUnavailable, got \(error)")
+        }
     }
 
     func testScaleMutationFamiliesSubmitInCallOrder() {
