@@ -255,7 +255,9 @@ class LegendViewController: UIViewController {
     }
 
     private func handleCrosshairMove(_ parameters: MouseEventParams) {
-        if let price = parameters.data(forSeries: series), let value = price.value {
+        if let seriesData = parameters.data(forSeries: series),
+            seriesData.kind == .singleValue,
+            let value = seriesData.value {
             legendLabel.text = legend + " \((value * 100).rounded() / 100)"
         } else {
             legendLabel.text = legend

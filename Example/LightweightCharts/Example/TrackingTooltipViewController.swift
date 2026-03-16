@@ -252,8 +252,9 @@ class TrackingTooltipViewController: UIViewController {
     private func handleCrosshairMove(_ parameters: MouseEventParams) {
         if case let .businessDayString(date) = parameters.time,
             let point = parameters.point,
-            let price = parameters.data(forSeries: series),
-            let value = price.value {
+            let seriesData = parameters.data(forSeries: series),
+            seriesData.kind == .singleValue,
+            let value = seriesData.value {
 
             tooltipView.update(title: legend, price: value, date: date)
             tooltipView.isHidden = false

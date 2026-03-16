@@ -432,8 +432,9 @@ class NoTimeScaleViewController: UIViewController {
     }
 
     private func handleCrosshairMove(_ parameters: MouseEventParams) {
-        guard let price = parameters.data(forSeries: areaSeries),
-            let value = price.value,
+        guard let seriesData = parameters.data(forSeries: areaSeries),
+            seriesData.kind == .singleValue,
+            let value = seriesData.value,
             let time = parameters.time,
             let point = parameters.point
             else {
