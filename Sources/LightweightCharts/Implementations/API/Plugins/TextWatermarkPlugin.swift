@@ -56,7 +56,7 @@ where Chart: JavaScriptObject {
     public init(
         chart: Chart,
         paneIndex: Int,
-        context: JavaScriptEvaluator,
+        context: JavaScriptEvaluator?,
         options: TextWatermarkOptions
     ) {
         self.options = options

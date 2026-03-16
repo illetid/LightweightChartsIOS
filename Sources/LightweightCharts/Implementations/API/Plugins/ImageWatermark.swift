@@ -12,7 +12,7 @@ public class ImageWatermark {
     let jsName: String
     private weak var context: Context?
 
-    init(context: Context, jsName: String) {
+    init(context: Context?, jsName: String) {
         self.context = context
         self.jsName = jsName
     }

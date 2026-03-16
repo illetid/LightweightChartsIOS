@@ -6,7 +6,7 @@ public class PriceLine: JavaScriptObject {
     public let jsName = "priceLine" + .uniqueString
     weak var context: JavaScriptEvaluator?
     
-    init(context: JavaScriptEvaluator) {
+    init(context: JavaScriptEvaluator?) {
         self.context = context
     }
 

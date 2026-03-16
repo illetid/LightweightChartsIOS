@@ -54,6 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **BREAKING**: Minimum deployment target is now iOS 15.0+
 - **BREAKING**: CocoaPods is no longer supported for this release
 - **BREAKING**: External conformers of `PaneApi` and `PanePlugin` must implement `currentIndex()` / `currentPaneIndex()`
+- **BREAKING**: `Chart.context` and `SeriesObject.context` are now `public internal(set)`; external consumers can read these optional references but cannot assign them
 - All bridge classes marked `@MainActor` for thread safety
 - All async methods now use `throws(JavaScriptBridgeError)` for typed error handling
 - `AsyncStream` properties for event subscriptions in `ChartApi`

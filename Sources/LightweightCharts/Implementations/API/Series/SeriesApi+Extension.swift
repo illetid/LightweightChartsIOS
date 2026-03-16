@@ -12,7 +12,7 @@ public extension SeriesApi where Self: SeriesObject {
     func priceFormatter() -> PriceFormatterApi {
         let priceFormatter = PriceFormatter(context: context)
         let script = "window['\(priceFormatter.jsName)'] = \(jsName).priceFormatter();"
-        context.submitScript(script)
+        context?.submitScript(script)
         return priceFormatter
     }
 
@@ -22,13 +22,13 @@ public extension SeriesApi where Self: SeriesObject {
         \(optionsScript.options)
         \(jsName).applyOptions(\(optionsScript.variableName));
         """
-        context.submitScript(script)
+        context?.submitScript(script)
     }
 
     func priceScale() -> PriceScaleApi {
         let priceScale = PriceScale(context: context)
         let script = "window['\(priceScale.jsName)'] = \(jsName).priceScale();"
-        context.submitScript(script)
+        context?.submitScript(script)
         return priceScale
     }
 
@@ -70,30 +70,30 @@ public extension SeriesApi where Self: SeriesObject {
             }
         }
         """
-        context.submitScript(script)
+        context?.submitScript(script)
     }
 
     func createPriceLine(options: PriceLineOptions?) -> PriceLine {
         let priceLine = PriceLine(context: context)
         let options = options ?? PriceLineOptions()
         let script = "window['\(priceLine.jsName)'] = \(jsName).createPriceLine(\(options.jsonString));"
-        context.submitScript(script)
+        context?.submitScript(script)
         return priceLine
     }
 
     func removePriceLine(line: PriceLine) {
         let script = "\(jsName).removePriceLine(\(line.jsName));"
-        context.submitScript(script)
+        context?.submitScript(script)
     }
 
     func setSeriesOrder(order: Int) {
         let script = "\(jsName).setSeriesOrder(\(order));"
-        context.submitScript(script)
+        context?.submitScript(script)
     }
 
     func moveToPane(paneIndex: Int) async throws(JavaScriptBridgeError) {
         let script = "\(jsName).moveToPane(\(paneIndex));"
-        _ = try await context.evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
     func subscribeDataChanged() {
@@ -108,45 +108,46 @@ public extension SeriesApi where Self: SeriesObject {
 
     func priceToCoordinate(price: Double) async throws(JavaScriptBridgeError) -> Coordinate? {
         let script = "\(jsName).priceToCoordinate(\(price));"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func coordinateToPrice(coordinate: Double) async throws(JavaScriptBridgeError) -> BarPrice? {
         let script = "\(jsName).coordinateToPrice(\(coordinate));"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func barsInLogicalRange(range: FromToRange<Double>?) async throws(JavaScriptBridgeError) -> BarsInfo? {
         let rangeValue = range?.jsonString ?? "null"
         let script = "\(jsName).barsInLogicalRange(\(rangeValue));"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func options() async throws(JavaScriptBridgeError) -> Options {
         let script = "\(jsName).options();"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func data() async throws(JavaScriptBridgeError) -> [TickValue] {
         let script = "\(jsName).data();"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func dataByIndex(logicalIndex: Int, mismatchDirection: MismatchDirection? = nil) async throws(JavaScriptBridgeError) -> TickValue? {
         let direction = mismatchDirection?.rawValue ?? 0
         let script = "\(jsName).dataByIndex(\(logicalIndex), \(direction));"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func markers() async throws(JavaScriptBridgeError) -> [SeriesMarker] {
         let script = """
         (typeof \(jsName)._lwcMarkersPlugin !== 'undefined') ? \(jsName)._lwcMarkersPlugin.markers() : null;
         """
-        return try await context.decodedResult(forScript: script) ?? []
+        return try await requireContext().decodedResult(forScript: script) ?? []
     }
 
     func priceLines() async throws(JavaScriptBridgeError) -> [PriceLine] {
         let countScript = "\(jsName).priceLines().length;"
+        let context = try requireContext()
         let count = try await context.evaluate(script: countScript, resultType: Int.self)
         guard count > 0 else {
             return []
@@ -164,22 +165,22 @@ public extension SeriesApi where Self: SeriesObject {
 
     func seriesType() async throws(JavaScriptBridgeError) -> SeriesType {
         let script = "\(jsName).seriesType();"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func seriesOrder() async throws(JavaScriptBridgeError) -> Int {
         let script = "\(jsName).seriesOrder();"
-        return try await context.evaluate(script: script, resultType: Int.self)
+        return try await requireContext().evaluate(script: script, resultType: Int.self)
     }
 
     func pop(count: Int) async throws(JavaScriptBridgeError) -> [TickValue] {
         let script = "\(jsName).pop(\(count));"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func lastValueData(globalLast: Bool) async throws(JavaScriptBridgeError) -> LastValueDataResult {
         let script = "\(jsName).lastValueData(\(globalLast ? "true" : "false"));"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func getPane() async throws(JavaScriptBridgeError) -> PaneApi {
@@ -188,6 +189,7 @@ public extension SeriesApi where Self: SeriesObject {
         }
 
         let script = "\(jsName).getPane().paneIndex();"
+        let context = try requireContext()
         let paneIndex = try await context.evaluate(script: script, resultType: Int.self)
         return Pane(index: paneIndex, chartJSName: chartJSName, context: context, closureStore: closureStore)
     }
@@ -207,7 +209,7 @@ public extension SeriesApi where Self: SeriesObject {
         }
 
         let script = "\(jsName).setData(\(data.jsonString));"
-        context.submitScript(script)
+        context?.submitScript(script)
     }
 
     private func updateSeriesBar<T: SeriesData>(_ bar: T, historicalUpdate: Bool?) {
@@ -223,7 +225,7 @@ public extension SeriesApi where Self: SeriesObject {
             script += ", \(historicalUpdate ? "true" : "false")"
         }
         script += ");"
-        context.submitScript(script)
+        context?.submitScript(script)
     }
 
     private func validateSeriesDataBeforeSet<T: SeriesData>(_ data: [T]) -> Bool {

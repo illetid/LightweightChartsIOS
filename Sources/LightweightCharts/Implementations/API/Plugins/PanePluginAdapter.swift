@@ -46,7 +46,7 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
     ///   - chart: The chart this plugin is attached to. Used to access the chart's JavaScript name.
     ///   - paneIndex: The index of the pane this plugin is attached to.
     ///   - context: The JavaScript evaluator context for script execution.
-    public init(chart: Chart, paneIndex: Int, context: JavaScriptEvaluator) {
+    public init(chart: Chart, paneIndex: Int, context: JavaScriptEvaluator?) {
         self.chartJsName = chart.jsName
         self._context = context
         self.jsName = PanePluginAdapter.makeJSName()
@@ -61,7 +61,7 @@ open class PanePluginAdapter<Chart>: PanePlugin where Chart: JavaScriptObject {
             window['\(paneJsName)'] = panes[\(paneIndex)];
         })();
         """
-        context.submitScript(script)
+        context?.submitScript(script)
     }
 
     // MARK: - Plugin Conformance

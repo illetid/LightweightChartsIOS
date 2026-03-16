@@ -29,7 +29,7 @@ class TimeScale: JavaScriptObject {
     private let messageHandler: MessageHandler
     private var activeSubscriptions: Dictionary<Subscription,SubscribeState> = [:]
     
-    init(context: Context, closureStore: ClosuresStore?) {
+    init(context: Context?, closureStore: ClosuresStore?) {
         self.context = context
         self.closureStore = closureStore
         messageHandler = MessageHandler()
