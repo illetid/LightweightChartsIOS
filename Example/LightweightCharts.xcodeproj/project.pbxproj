@@ -3,16 +3,14 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3A101DB89FB89F78AD70AEC8 /* Pods_LightweightCharts_Tests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CA67766DE9AF16E36F49BD /* Pods_LightweightCharts_Tests.framework */; };
 		607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD51AFB9204008FA782 /* AppDelegate.swift */; };
 		607FACDD1AFB9204008FA782 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDC1AFB9204008FA782 /* Images.xcassets */; };
 		607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDE1AFB9204008FA782 /* LaunchScreen.xib */; };
 		607FACEC1AFB9204008FA782 /* Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACEB1AFB9204008FA782 /* Tests.swift */; };
-		74BE5DF4B5014DE3A3202F1B /* Pods_LightweightCharts_Example.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 044E7F3DC28BDE6625CA93A6 /* Pods_LightweightCharts_Example.framework */; };
 		8C8C291824D161F900EC537E /* AddAndRemovePriceLineViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE48520A23A3B3FB0033EE94 /* AddAndRemovePriceLineViewController.swift */; };
 		8C8C291924D1620800EC537E /* PriceLineViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE48520823A3B00E0033EE94 /* PriceLineViewController.swift */; };
 		8C8C291A24D1621500EC537E /* MarkersViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE48520623A39FE50033EE94 /* MarkersViewController.swift */; };
@@ -42,23 +40,11 @@
 		8C8C293224D1666600EC537E /* ThreeLineLegendViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5053CE2397AF6D00143B03 /* ThreeLineLegendViewController.swift */; };
 		8C8C293324D1666F00EC537E /* TableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5053DD2397AF6D00143B03 /* TableViewController.swift */; };
 		CE5054042397AF9400143B03 /* TooltipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5054032397AF9400143B03 /* TooltipView.swift */; };
+		D2C0AC2ABE35A449F9CA20B0 /* LightweightCharts in Frameworks */ = {isa = PBXBuildFile; productRef = 4544317D03FCCDEE1F5F0F96 /* LightweightCharts */; };
+		DC10F4058DD7C232880E621D /* LightweightCharts in Frameworks */ = {isa = PBXBuildFile; productRef = D01FF51166CC37E194BA92D9 /* LightweightCharts */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		607FACE61AFB9204008FA782 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 607FACC81AFB9204008FA782 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 607FACCF1AFB9204008FA782;
-			remoteInfo = LightweightCharts;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
-		044E7F3DC28BDE6625CA93A6 /* Pods_LightweightCharts_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LightweightCharts_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		24A0CC9B8276DF1B88BB6827 /* Pods-LightweightCharts_Example.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LightweightCharts_Example.release.xcconfig"; path = "Target Support Files/Pods-LightweightCharts_Example/Pods-LightweightCharts_Example.release.xcconfig"; sourceTree = "<group>"; };
-		2B2CCD280B44621A419241D0 /* Pods-LightweightCharts_Example.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LightweightCharts_Example.debug.xcconfig"; path = "Target Support Files/Pods-LightweightCharts_Example/Pods-LightweightCharts_Example.debug.xcconfig"; sourceTree = "<group>"; };
-		38CA67766DE9AF16E36F49BD /* Pods_LightweightCharts_Tests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LightweightCharts_Tests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		607FACD01AFB9204008FA782 /* LightweightCharts_Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LightweightCharts_Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		607FACD41AFB9204008FA782 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		607FACD51AFB9204008FA782 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -67,9 +53,6 @@
 		607FACE51AFB9204008FA782 /* LightweightCharts_Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LightweightCharts_Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		607FACEA1AFB9204008FA782 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		607FACEB1AFB9204008FA782 /* Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests.swift; sourceTree = "<group>"; };
-		759758E6F2D1AE08DF45B233 /* Pods-LightweightCharts_Tests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LightweightCharts_Tests.debug.xcconfig"; path = "Target Support Files/Pods-LightweightCharts_Tests/Pods-LightweightCharts_Tests.debug.xcconfig"; sourceTree = "<group>"; };
-		A0572B03C8BB267225BCF044 /* LightweightCharts.podspec */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = LightweightCharts.podspec; path = ../LightweightCharts.podspec; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.ruby; };
-		CDE0E0A068DA7739866C0DAE /* Pods-LightweightCharts_Tests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LightweightCharts_Tests.release.xcconfig"; path = "Target Support Files/Pods-LightweightCharts_Tests/Pods-LightweightCharts_Tests.release.xcconfig"; sourceTree = "<group>"; };
 		CE48520623A39FE50033EE94 /* MarkersViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkersViewController.swift; sourceTree = "<group>"; };
 		CE48520823A3B00E0033EE94 /* PriceLineViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceLineViewController.swift; sourceTree = "<group>"; };
 		CE48520A23A3B3FB0033EE94 /* AddAndRemovePriceLineViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAndRemovePriceLineViewController.swift; sourceTree = "<group>"; };
@@ -108,7 +91,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				74BE5DF4B5014DE3A3202F1B /* Pods_LightweightCharts_Example.framework in Frameworks */,
+				DC10F4058DD7C232880E621D /* LightweightCharts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,33 +99,20 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3A101DB89FB89F78AD70AEC8 /* Pods_LightweightCharts_Tests.framework in Frameworks */,
+				D2C0AC2ABE35A449F9CA20B0 /* LightweightCharts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0485F1B967D8E9A709A9B3A5 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				2B2CCD280B44621A419241D0 /* Pods-LightweightCharts_Example.debug.xcconfig */,
-				24A0CC9B8276DF1B88BB6827 /* Pods-LightweightCharts_Example.release.xcconfig */,
-				759758E6F2D1AE08DF45B233 /* Pods-LightweightCharts_Tests.debug.xcconfig */,
-				CDE0E0A068DA7739866C0DAE /* Pods-LightweightCharts_Tests.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		607FACC71AFB9204008FA782 = {
 			isa = PBXGroup;
 			children = (
-				607FACF51AFB993E008FA782 /* Podspec Metadata */,
+				607FACF51AFB993E008FA782 /* Project Metadata */,
 				607FACD21AFB9204008FA782 /* Example for LightweightCharts */,
 				607FACE81AFB9204008FA782 /* Tests */,
 				607FACD11AFB9204008FA782 /* Products */,
-				0485F1B967D8E9A709A9B3A5 /* Pods */,
-				808647EEBB78D1B8E9B616CA /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -194,23 +164,13 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
-		607FACF51AFB993E008FA782 /* Podspec Metadata */ = {
+		607FACF51AFB993E008FA782 /* Project Metadata */ = {
 			isa = PBXGroup;
 			children = (
-				A0572B03C8BB267225BCF044 /* LightweightCharts.podspec */,
 				EFA6726F0ECE5AC37208CF71 /* README.md */,
 				D523CE8978B70BDFD5503282 /* LICENSE */,
 			);
-			name = "Podspec Metadata";
-			sourceTree = "<group>";
-		};
-		808647EEBB78D1B8E9B616CA /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				044E7F3DC28BDE6625CA93A6 /* Pods_LightweightCharts_Example.framework */,
-				38CA67766DE9AF16E36F49BD /* Pods_LightweightCharts_Tests.framework */,
-			);
-			name = Frameworks;
+			name = "Project Metadata";
 			sourceTree = "<group>";
 		};
 		CE5053CD2397AF6D00143B03 /* Example */ = {
@@ -263,11 +223,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 607FACEF1AFB9204008FA782 /* Build configuration list for PBXNativeTarget "LightweightCharts_Example" */;
 			buildPhases = (
-				4EB5D863628A772FCF5267D9 /* [CP] Check Pods Manifest.lock */,
 				607FACCC1AFB9204008FA782 /* Sources */,
 				607FACCD1AFB9204008FA782 /* Frameworks */,
 				607FACCE1AFB9204008FA782 /* Resources */,
-				DA29DE437F7165F7E6B7BF21 /* [CP] Embed Pods Frameworks */,
 				CE4EDA2823A247B800ED8E07 /* ShellScript */,
 			);
 			buildRules = (
@@ -275,6 +233,9 @@
 			dependencies = (
 			);
 			name = LightweightCharts_Example;
+			packageProductDependencies = (
+				D01FF51166CC37E194BA92D9 /* LightweightCharts */,
+			);
 			productName = LightweightCharts;
 			productReference = 607FACD01AFB9204008FA782 /* LightweightCharts_Example.app */;
 			productType = "com.apple.product-type.application";
@@ -283,7 +244,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 607FACF21AFB9204008FA782 /* Build configuration list for PBXNativeTarget "LightweightCharts_Tests" */;
 			buildPhases = (
-				B2E2E05A0683BEE78BDBF4CC /* [CP] Check Pods Manifest.lock */,
 				607FACE11AFB9204008FA782 /* Sources */,
 				607FACE21AFB9204008FA782 /* Frameworks */,
 				607FACE31AFB9204008FA782 /* Resources */,
@@ -291,9 +251,11 @@
 			buildRules = (
 			);
 			dependencies = (
-				607FACE71AFB9204008FA782 /* PBXTargetDependency */,
 			);
 			name = LightweightCharts_Tests;
+			packageProductDependencies = (
+				4544317D03FCCDEE1F5F0F96 /* LightweightCharts */,
+			);
 			productName = Tests;
 			productReference = 607FACE51AFB9204008FA782 /* LightweightCharts_Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -306,7 +268,7 @@
 			attributes = {
 				LastSwiftUpdateCheck = 0830;
 				LastUpgradeCheck = 1120;
-				ORGANIZATIONNAME = CocoaPods;
+				ORGANIZATIONNAME = TradingView;
 				TargetAttributes = {
 					607FACCF1AFB9204008FA782 = {
 						CreatedOnToolsVersion = 6.3.1;
@@ -315,12 +277,11 @@
 					607FACE41AFB9204008FA782 = {
 						CreatedOnToolsVersion = 6.3.1;
 						LastSwiftMigration = 0900;
-						TestTargetID = 607FACCF1AFB9204008FA782;
 					};
 				};
 			};
 			buildConfigurationList = 607FACCB1AFB9204008FA782 /* Build configuration list for PBXProject "LightweightCharts" */;
-			compatibilityVersion = "Xcode 3.2";
+			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -328,6 +289,9 @@
 				Base,
 			);
 			mainGroup = 607FACC71AFB9204008FA782;
+			packageReferences = (
+				3A995D40CE0B3131BAB768C9 /* XCLocalSwiftPackageReference ".." */,
+			);
 			productRefGroup = 607FACD11AFB9204008FA782 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -358,50 +322,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		4EB5D863628A772FCF5267D9 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-LightweightCharts_Example-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		B2E2E05A0683BEE78BDBF4CC /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-LightweightCharts_Tests-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
 		CE4EDA2823A247B800ED8E07 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -418,24 +338,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "#if which swiftlint >/dev/null; then\n # swiftlint\n#else\n # echo \"error: SwiftLint does not exist, install it using brew #install swiftlint\"\n  #exit 1\n#fi\n";
-		};
-		DA29DE437F7165F7E6B7BF21 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-LightweightCharts_Example/Pods-LightweightCharts_Example-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/LightweightCharts/LightweightCharts.framework",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/LightweightCharts.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LightweightCharts_Example/Pods-LightweightCharts_Example-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -486,14 +388,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		607FACE71AFB9204008FA782 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 607FACCF1AFB9204008FA782 /* LightweightCharts_Example */;
-			targetProxy = 607FACE61AFB9204008FA782 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		607FACDE1AFB9204008FA782 /* LaunchScreen.xib */ = {
@@ -555,7 +449,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+					IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -605,7 +499,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+					IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
@@ -616,11 +510,10 @@
 		};
 		607FACF01AFB9204008FA782 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2B2CCD280B44621A419241D0 /* Pods-LightweightCharts_Example.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = LightweightCharts/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 3.5.0;
 				MODULE_NAME = ExampleApp;
@@ -634,11 +527,10 @@
 		};
 		607FACF11AFB9204008FA782 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 24A0CC9B8276DF1B88BB6827 /* Pods-LightweightCharts_Example.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = LightweightCharts/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 3.5.0;
 				MODULE_NAME = ExampleApp;
@@ -652,7 +544,6 @@
 		};
 		607FACF31AFB9204008FA782 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 759758E6F2D1AE08DF45B233 /* Pods-LightweightCharts_Tests.debug.xcconfig */;
 			buildSettings = {
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(PLATFORM_DIR)/Developer/Library/Frameworks",
@@ -663,30 +554,29 @@
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Tests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "tradingview.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LightweightCharts_Example.app/LightweightCharts_Example";
 			};
 			name = Debug;
 		};
 		607FACF41AFB9204008FA782 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CDE0E0A068DA7739866C0DAE /* Pods-LightweightCharts_Tests.release.xcconfig */;
 			buildSettings = {
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(PLATFORM_DIR)/Developer/Library/Frameworks",
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Tests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "tradingview.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LightweightCharts_Example.app/LightweightCharts_Example";
 			};
 			name = Release;
 		};
@@ -721,6 +611,26 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-	};
+
+/* Begin XCLocalSwiftPackageReference section */
+		3A995D40CE0B3131BAB768C9 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4544317D03FCCDEE1F5F0F96 /* LightweightCharts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3A995D40CE0B3131BAB768C9 /* XCLocalSwiftPackageReference ".." */;
+			productName = LightweightCharts;
+		};
+		D01FF51166CC37E194BA92D9 /* LightweightCharts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3A995D40CE0B3131BAB768C9 /* XCLocalSwiftPackageReference ".." */;
+			productName = LightweightCharts;
+		};
+/* End XCSwiftPackageProductDependency section */
+		};
 	rootObject = 607FACC81AFB9204008FA782 /* Project object */;
 }

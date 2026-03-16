@@ -4,14 +4,12 @@ The iOS LightweightCharts is an iOS wrapper of the [TradingView Lightweight Char
 
 ## Example
 
-The Example workspace is the canonical validation path for this repository.
+The Example Xcode project is the canonical validation path for this repository.
 
 To run it locally:
 
 ```bash
-cd Example
-pod install
-open LightweightCharts.xcworkspace
+open Example/LightweightCharts.xcodeproj
 ```
 
 ## Requirements
@@ -38,9 +36,7 @@ Or in Xcode: File > Add Package Dependencies > Enter the repository URL.
 
 ### CocoaPods Status
 
-CocoaPods is unsupported for the next major Swift 6 release.
-
-The checked-in [LightweightCharts.podspec](LightweightCharts.podspec) is retained only so the local Example workspace can continue to resolve the library during migration work. It should not be treated as a supported distribution path for release planning.
+CocoaPods has been removed and is not supported for this release.
 
 ## Usage
 
@@ -142,8 +138,8 @@ See [MIGRATION_TO_SWIFT6_ASYNC.md](MIGRATION_TO_SWIFT6_ASYNC.md) for the focused
 Current migration constraints:
 
 - Swift 6 and iOS 15 are required for the target release.
-- The Example workspace is the authoritative build and test target.
-- CocoaPods is not a supported installation path for the target release.
+- The Example Xcode project is the authoritative build and test target.
+- Swift Package Manager is the only supported installation path for the target release.
 - Public async APIs throw real bridge errors. Expect underlying WebKit evaluation failures or `JavaScriptBridgeError` when the JS context is unavailable, the returned value has the wrong shape, or decoding fails.
 
 Plugin factory semantics during the migration:

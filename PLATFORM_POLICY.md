@@ -1,98 +1,61 @@
 # Platform Policy for LightweightChartsIOS
 
-## Effective Version: 5.0.0
+## Effective Version: 5.1.0
 
-This document defines the platform support policy for the LightweightChartsIOS wrapper library.
+This document defines the supported platform and distribution policy for the LightweightChartsIOS wrapper library.
+
+---
+
+## Supported Distribution Path
+
+### Swift Package Manager only
+
+As of version 5.1.0, Swift Package Manager is the only supported distribution path for this repository.
+
+| Distribution Path     | Status      |
+|-----------------------|-------------|
+| Swift Package Manager | Supported   |
+| CocoaPods             | Removed     |
 
 ---
 
 ## Minimum Platform Version
 
-### iOS 13.0
+### iOS 15.0
 
-As of version 5.0.0, the minimum supported iOS version is **13.0** for all package managers.
+As of version 5.1.0, the minimum supported iOS version is **15.0**.
 
-| Package Manager | Minimum iOS Version |
-|-----------------|---------------------|
-| CocoaPods       | iOS 13.0            |
-| SPM             | iOS 13.0            |
+### Why iOS 15.0?
 
----
-
-## Rationale
-
-### Current State (v4.0.0)
-- CocoaPods specified iOS 12.0
-- SPM specified iOS 10.0
-- README documented "iOS 12.0+"
-- Inconsistent requirements across package managers created confusion
-
-### Why iOS 13.0?
-
-1. **Consistency**: Unified minimum version across all package managers eliminates user confusion.
-
-2. **Market Saturation**: As of 2026, iOS 13+ represents >99% of active devices. iOS 13 was released in September 2019.
-
-3. **Major Version Flexibility**: v5.0.0 is a major version bump, which semantically allows for breaking changes including platform minimum increases.
-
-4. **Modern APIs**: iOS 13 provides access to modern APIs that may be useful for future wrapper enhancements (e.g., Combine, updated WKWebView capabilities).
-
-5. **Maintainability**: Dropping support for iOS 10-12 reduces testing matrix and allows use of newer Swift language features without complex availability checks.
+1. Swift 6 and the async/await-first API are the baseline for the current release.
+2. The wrapper depends on modern WebKit and concurrency behavior that is aligned with iOS 15+.
+3. Supporting older versions would increase maintenance burden for a release that already contains intentional breaking changes.
 
 ---
 
 ## Migration Impact for Users
 
-### Users on iOS 12.x
-Apps targeting iOS 12.x will need to either:
-- Remain on LightweightChartsIOS v4.0.0
-- Update their app's deployment target to iOS 13.0+
+Apps targeting iOS earlier than 15.0 or relying on CocoaPods must remain on an older release line or migrate to:
 
-### Users on iOS 13.0+
-No migration required. Upgrade directly to v5.0.0.
+- iOS 15.0+
+- Swift 6
+- Swift Package Manager
 
 ---
 
-## Future Platform Bumps
+## Maintenance Rule
 
-### Policy
-Platform minimum version increases will only occur with **major version bumps** (e.g., v6.0.0).
+Platform minimum version increases and supported distribution path changes are major-release decisions and must be reflected consistently in:
 
-### Criteria
-Future platform version increases will be considered when:
-1. The older iOS version represents <1% of active devices
-2. Significant developer experience improvements are available
-3. A major version bump is already planned for other breaking changes
-
-### Notification
-Platform minimum changes will be:
-1. Announced in the changelog
-2. Documented in migration guides
-3. Included in release notes at least one minor version ahead of the change
-
----
-
-## Implementation Files
-
-The following files must be updated consistently when changing platform versions:
-
-1. `LightweightCharts.podspec` - `s.ios.deployment_target`
-2. `Package.swift` - `.iOS(.vXX)` in platforms array
-3. `README.md` - Requirements section
+1. [Package.swift](/Users/aovcharenko/Work/rappers/LightweightChartsIOS/Package.swift)
+2. [README.md](/Users/aovcharenko/Work/rappers/LightweightChartsIOS/README.md)
+3. [CHANGELOG.md](/Users/aovcharenko/Work/rappers/LightweightChartsIOS/CHANGELOG.md)
 
 ---
 
 ## Version History
 
-| Wrapper Version | Minimum iOS | Date       | Notes                                  |
-|-----------------|-------------|------------|----------------------------------------|
-| 4.0.0           | 12.0 (CP)   | 2024       | Inconsistent: SPM specified 10.0       |
-| 5.0.0           | 13.0        | 2026-02    | Unified across all package managers    |
-
----
-
-## Related Documents
-
-- `MIGRATION_PLAN_V4_TO_V5.md` - Technical migration details
-- `TASKS_V4_TO_V5.md` - Implementation checklist
-- `MIGRATION_V4_TO_V5.md` - User-facing migration guide (to be created)
+| Wrapper Version | Minimum iOS | Distribution | Notes |
+|-----------------|-------------|--------------|-------|
+| 4.0.0           | 12.0        | CocoaPods/SPM | Legacy pre-Swift-6 wrapper |
+| 5.1.0           | 15.0        | SPM only     | Swift 6 async release, CocoaPods removed |

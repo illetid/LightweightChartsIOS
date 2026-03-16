@@ -19,8 +19,7 @@ let package = Package(
             name: "LightweightCharts",
             dependencies: [],
             exclude: [
-                "Extensions/Bundle+Resources.swift",
-                "Assets/lightweight-charts.js.backup"
+                "Extensions/Bundle+Resources.swift"
             ],
             resources: [
                 .process("Assets/content-setup.js"),
