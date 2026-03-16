@@ -33,12 +33,7 @@ public class Chart: JavaScriptObject {
     public weak var delegate: ChartDelegate?
 
     /// The JavaScript evaluator context for this chart.
-    internal unowned var _context: Context
-
-    /// The JavaScript evaluator context exposed by the concrete chart type.
-    public var context: any JavaScriptEvaluator {
-        return _context
-    }
+    public internal(set) weak var context: Context?
 
     private let messageHandler: MessageHandler
     private weak var closureStore: ClosuresStore?
@@ -50,10 +45,17 @@ public class Chart: JavaScriptObject {
     private var legacyWatermarkOptions: DeprecatedWatermarkOptions?
     
     init(context: Context, closureStore: ClosuresStore?) {
-        self._context = context
+        self.context = context
         self.closureStore = closureStore
         messageHandler = MessageHandler()
         messageHandler.delegate = self
+    }
+
+    private func requireContext() throws(JavaScriptBridgeError) -> Context {
+        guard let context else {
+            throw JavaScriptBridgeError.contextUnavailable
+        }
+        return context
     }
 
     private func paneScopedCreationScript(objectName: String, paneIndex: Int, factoryCall: String) -> String {
@@ -135,7 +137,7 @@ public class Chart: JavaScriptObject {
             \(jsName)._lwcTextWatermark.applyOptions(\(watermarkOptions.jsonString));
         }
         """
-        _context.submitScript(script)
+        context?.submitScript(script)
     }
 
     /// Removes the legacy watermark if it exists
@@ -146,7 +148,7 @@ public class Chart: JavaScriptObject {
             delete \(jsName)._lwcTextWatermark;
         }
         """
-        _context.submitScript(script)
+        context?.submitScript(script)
     }
 
     private func addSeries<T: SeriesApi & SeriesObject>(options: T.Options, paneIndex: Int = 0) -> T {
@@ -158,7 +160,7 @@ public class Chart: JavaScriptObject {
         var \(series.jsName) = \(jsName).addSeries(LightweightCharts.\(T.name), \(optionsScript.variableName), \(paneIndex));
         seriesArray.push({name: "\(series.jsName)", series: \(series.jsName)});
         """
-        _context.submitScript(script)
+        context?.submitScript(script)
         return series
     }
     
@@ -206,14 +208,18 @@ public class Chart: JavaScriptObject {
             return
         }
 
+        guard let context else {
+            return
+        }
+
         let name = subscriberName(for: subscription)
         var subscriberScript = ""
         if activeSubscriptions[subscription] != .declared {
             subscriberScript = makeSubscriberScript(forName: name, subscription: subscription)
-            _context.addMessageHandler(messageHandler, name: name)
+            context.addMessageHandler(messageHandler, name: name)
         }
         let script = subscriberScript + "\n\(jsName).subscribe\(subscription.jsRepresentation)(\(name));"
-        _context.submitScript(script)
+        context.submitScript(script)
         activeSubscriptions[subscription] = .active
     }
 
@@ -222,9 +228,14 @@ public class Chart: JavaScriptObject {
             return
         }
 
+        guard let context else {
+            activeSubscriptions[subscription] = .declared
+            return
+        }
+
         let name = subscriberName(for: subscription)
         let script = "\(jsName).unsubscribe\(subscription.jsRepresentation)(\(name));"
-        _context.submitScript(script)
+        context.submitScript(script)
         activeSubscriptions[subscription] = .declared
     }
 
@@ -316,7 +327,7 @@ extension Chart: ChartApi {
         finishEventStreams()
         unsubscribeAll()
         let script = "\(jsName).remove();"
-        _context.submitScript(script)
+        context?.submitScript(script)
     }
     
     public func resize(width: Double, height: Double, forceRepaint: Bool?) {
@@ -325,7 +336,7 @@ extension Chart: ChartApi {
             parameters += ", \(forceRepaint)"
         }
         let script = "\(jsName).resize(\(parameters));"
-        _context.submitScript(script)
+        context?.submitScript(script)
     }
 
     // MARK: Series methods
@@ -386,16 +397,17 @@ public func addBaselineSeries(options: BaselineSeries.Options?) -> BaselineSerie
     ///
     /// - Returns: A stable pane handle.
     public func addPane(preserveEmptyPane: Bool? = nil) async throws(JavaScriptBridgeError) -> PaneApi {
-        let pane = Pane(chartJSName: jsName, context: _context, closureStore: closureStore)
+        let context = try requireContext()
+        let pane = Pane(chartJSName: jsName, context: context, closureStore: closureStore)
         var parameters = ""
         if let preserveEmptyPane {
             parameters = preserveEmptyPane ? "true" : "false"
         }
         let script = "window['\(pane.jsName)'] = \(jsName).addPane(\(parameters));"
-        _ = try await _context.evaluateScript(script)
+        _ = try await context.evaluateScript(script)
 
         let paneIndexScript = "window['\(pane.jsName)'].paneIndex();"
-        let paneIndex = try await _context.evaluate(script: paneIndexScript, resultType: Int.self)
+        let paneIndex = try await context.evaluate(script: paneIndexScript, resultType: Int.self)
         if paneIndex < 0 {
             throw .evaluationFailed(script: paneIndexScript, message: "Added pane returned an invalid pane index.")
         }
@@ -403,21 +415,22 @@ public func addBaselineSeries(options: BaselineSeries.Options?) -> BaselineSerie
     }
 
     public func panes() async throws(JavaScriptBridgeError) -> [PaneApi] {
+        let context = try requireContext()
         let script = "\(jsName).panes().length;"
-        let count = try await _context.evaluate(script: script, resultType: Int.self)
+        let count = try await context.evaluate(script: script, resultType: Int.self)
         return (0..<count).map { index in
-            Pane(index: index, chartJSName: self.jsName, context: self._context, closureStore: self.closureStore)
+            Pane(index: index, chartJSName: self.jsName, context: context, closureStore: self.closureStore)
         }
     }
 
     public func removePane(index: Int) async throws(JavaScriptBridgeError) {
         let script = "\(jsName).removePane(\(index));"
-        _ = try await _context.evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
     public func swapPanes(first: Int, second: Int) async throws(JavaScriptBridgeError) {
         let script = "\(jsName).swapPanes(\(first), \(second));"
-        _ = try await _context.evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
     
 public func removeSeries<T: SeriesApi & SeriesObject>(seriesApi: T) {
@@ -430,7 +443,7 @@ public func removeSeries<T: SeriesApi & SeriesObject>(seriesApi: T) {
         }
         \(jsName).removeSeries(\(seriesApi.jsName));
         """
-        _context.submitScript(script)
+        context?.submitScript(script)
     }
     
     // MARK: Subscriptions
@@ -466,17 +479,17 @@ public func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, hor
         }
         \(jsName).setCrosshairPosition(\(price), \(horizontalPosition.jsonString), \(seriesApi.jsName));
         """
-        _ = try await _context.evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
 public func clearCrosshairPosition() {
         let script = "\(jsName).clearCrosshairPosition();"
-    _context.submitScript(script)
+    context?.submitScript(script)
     }
 
     public func paneSize(paneIndex: Int) async throws(JavaScriptBridgeError) -> Rectangle {
         let script = "\(jsName).paneSize(\(paneIndex));"
-        return try await _context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     // MARK: Other APIs and options methods
@@ -490,14 +503,14 @@ public func clearCrosshairPosition() {
         } else {
             script = "window['\(priceScale.jsName)'] = \(jsName).priceScale(\(priceScaleId.jsonString()));"
         }
-        _context.submitScript(script)
+        context?.submitScript(script)
         return priceScale
     }
     
 public func timeScale() -> TimeScaleApi {
-        let timeScale = TimeScale(context: _context, closureStore: closureStore)
+        let timeScale = TimeScale(context: context, closureStore: closureStore)
         let script = "var \(timeScale.jsName) = \(jsName).timeScale();"
-    _context.submitScript(script)
+    context?.submitScript(script)
         return timeScale
     }
     
@@ -510,7 +523,7 @@ public func applyOptions(options: ChartOptions) {
         \(optionsScript.options)
         \(jsName).applyOptions(\(optionsScript.variableName));
         """
-        _context.submitScript(script)
+        context?.submitScript(script)
 
         // Apply legacy watermark compatibility after chart options (task 4.4)
         if options._watermarkWasExplicitlySet {
@@ -524,12 +537,12 @@ public func applyOptions(options: ChartOptions) {
 
     public func options() async throws(JavaScriptBridgeError) -> ChartOptions {
         let script = "\(jsName).options();"
-        return try await _context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     public func autoSizeActive() async throws(JavaScriptBridgeError) -> Bool {
         let script = "\(jsName).autoSizeActive();"
-        return try await _context.evaluate(script: script, resultType: Bool.self)
+        return try await requireContext().evaluate(script: script, resultType: Bool.self)
     }
 
     public func takeScreenshot(addTopLayer: Bool?, includeCrosshair: Bool?) async throws(JavaScriptBridgeError) -> UIImage {
@@ -546,7 +559,7 @@ public func applyOptions(options: ChartOptions) {
             screenshotCall = "\(jsName).takeScreenshot()"
         }
         let script = "\(screenshotCall).toDataURL('\(imageFormat)', 1.0);"
-        let decodedString = try await _context.evaluate(script: script, resultType: String.self)
+        let decodedString = try await requireContext().evaluate(script: script, resultType: String.self)
         let dataString = decodedString.isEmpty ? nil : decodedString
         do {
             let imageData = try await Task.detached(priority: .utility) { () throws -> Data in
@@ -586,7 +599,7 @@ public func createTextWatermark(paneIndex: Int, options: TextWatermarkOptions) -
             paneIndex: paneIndex,
             factoryCall: "LightweightCharts.createTextWatermark(panes[\(paneIndex)], \(options.jsonString()))"
         )
-        _context.submitScript(script)
+        context?.submitScript(script)
         return watermark
     }
 
@@ -597,7 +610,7 @@ public func createImageWatermark(paneIndex: Int, imageUrl: String, options: Imag
             paneIndex: paneIndex,
             factoryCall: "LightweightCharts.createImageWatermark(panes[\(paneIndex)], \(imageUrl.jsonString()), \(options.jsonString()))"
         )
-        _context.submitScript(script)
+        context?.submitScript(script)
         return watermark
     }
 
@@ -613,7 +626,7 @@ public func createImageWatermark(paneIndex: Int, imageUrl: String, options: Imag
     ///   - options: Initial options for the text watermark.
     /// - Returns: A new text watermark plugin instance.
     public func createTextWatermarkPlugin(paneIndex: Int, options: TextWatermarkOptions) -> TextWatermarkPlugin<Chart> {
-        return TextWatermarkPlugin(chart: self, paneIndex: paneIndex, context: _context, options: options)
+        return TextWatermarkPlugin(chart: self, paneIndex: paneIndex, context: context, options: options)
     }
 
     /// Creates an image watermark plugin on the specified pane.
@@ -631,7 +644,7 @@ public func createImageWatermark(paneIndex: Int, imageUrl: String, options: Imag
         imageUrl: String,
         options: ImageWatermarkOptions = ImageWatermarkOptions()
     ) -> ImageWatermarkPlugin<Chart> {
-        return ImageWatermarkPlugin(chart: self, paneIndex: paneIndex, imageUrl: imageUrl, context: _context, options: options)
+        return ImageWatermarkPlugin(chart: self, paneIndex: paneIndex, imageUrl: imageUrl, context: context, options: options)
     }
 
 }
@@ -687,10 +700,10 @@ final class Pane: PaneApi {
 
     private let chartJSName: String
     let jsName: String
-    private unowned let context: JavaScriptEvaluator
+    private weak var context: JavaScriptEvaluator?
     private weak var closureStore: ClosuresStore?
 
-    init(index: Int, chartJSName: String, context: JavaScriptEvaluator, closureStore: ClosuresStore?) {
+    init(index: Int, chartJSName: String, context: JavaScriptEvaluator?, closureStore: ClosuresStore?) {
         self.chartJSName = chartJSName
         self.jsName = "pane" + .uniqueString
         self.context = context
@@ -705,14 +718,21 @@ final class Pane: PaneApi {
             window['\(jsName)'] = panes[\(index)];
         })();
         """
-        context.submitScript(script)
+        context?.submitScript(script)
     }
 
-    init(chartJSName: String, context: JavaScriptEvaluator, closureStore: ClosuresStore?) {
+    init(chartJSName: String, context: JavaScriptEvaluator?, closureStore: ClosuresStore?) {
         self.chartJSName = chartJSName
         self.jsName = "pane" + .uniqueString
         self.context = context
         self.closureStore = closureStore
+    }
+
+    private func requireContext() throws(JavaScriptBridgeError) -> JavaScriptEvaluator {
+        guard let context else {
+            throw JavaScriptBridgeError.contextUnavailable
+        }
+        return context
     }
 
     private func paneExpression() -> String {
@@ -728,7 +748,7 @@ final class Pane: PaneApi {
         window['\(series.jsName)'] = \(paneExpression()).addSeries(LightweightCharts.\(T.name), \(optionsScript.variableName));
         seriesArray.push({name: "\(series.jsName)", series: window['\(series.jsName)']});
         """
-        context.submitScript(script)
+        context?.submitScript(script)
         return series
     }
 
@@ -737,27 +757,27 @@ final class Pane: PaneApi {
     func size() async throws(JavaScriptBridgeError) -> Rectangle {
         let paneIndex = try await paneIndex()
         let script = "\(chartJSName).paneSize(\(paneIndex));"
-        return try await context.decodedResult(forScript: script)
+        return try await requireContext().decodedResult(forScript: script)
     }
 
     func getHeight() async throws(JavaScriptBridgeError) -> Double {
         let script = "\(paneExpression()).getHeight();"
-        return try await context.evaluate(script: script, resultType: Double.self)
+        return try await requireContext().evaluate(script: script, resultType: Double.self)
     }
 
     func preserveEmptyPane() async throws(JavaScriptBridgeError) -> Bool {
         let script = "\(paneExpression()).preserveEmptyPane();"
-        return try await context.evaluate(script: script, resultType: Bool.self)
+        return try await requireContext().evaluate(script: script, resultType: Bool.self)
     }
 
     func getStretchFactor() async throws(JavaScriptBridgeError) -> Double {
         let script = "\(paneExpression()).getStretchFactor();"
-        return try await context.evaluate(script: script, resultType: Double.self)
+        return try await requireContext().evaluate(script: script, resultType: Double.self)
     }
 
     func paneIndex() async throws(JavaScriptBridgeError) -> Int {
         let script = "\(paneExpression()).paneIndex();"
-        let paneIndex = try await context.evaluate(script: script, resultType: Int.self)
+        let paneIndex = try await requireContext().evaluate(script: script, resultType: Int.self)
         if paneIndex == -1 {
             throw JavaScriptBridgeError.evaluationFailed(
                 script: script,
@@ -769,22 +789,22 @@ final class Pane: PaneApi {
 
     func setHeight(height: Double) async throws(JavaScriptBridgeError) {
         let script = "\(paneExpression()).setHeight(\(height));"
-        _ = try await context.evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
     func moveTo(paneIndex: Int) async throws(JavaScriptBridgeError) {
         let script = "\(paneExpression()).moveTo(\(paneIndex));"
-        _ = try await context.evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
     func setPreserveEmptyPane(preserve: Bool) async throws(JavaScriptBridgeError) {
         let script = "\(paneExpression()).setPreserveEmptyPane(\(preserve ? "true" : "false"));"
-        _ = try await context.evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
     func setStretchFactor(stretchFactor: Double) async throws(JavaScriptBridgeError) {
         let script = "\(paneExpression()).setStretchFactor(\(stretchFactor));"
-        _ = try await context.evaluateScript(script)
+        _ = try await requireContext().evaluateScript(script)
     }
 
     func addAreaSeries(options: AreaSeries.Options?) -> AreaSeries {
@@ -814,7 +834,7 @@ final class Pane: PaneApi {
     func priceScale(priceScaleId: String) -> PriceScaleApi {
         let priceScale = PriceScale(context: context)
         let script = "window['\(priceScale.jsName)'] = \(paneExpression()).priceScale(\(priceScaleId.jsonString()));"
-        context.submitScript(script)
+        context?.submitScript(script)
         return priceScale
     }
 

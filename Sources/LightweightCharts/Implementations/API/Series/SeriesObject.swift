@@ -9,7 +9,7 @@ public class SeriesObject: JavaScriptObject {
 
     public let jsName: String
 
-    public unowned var context: JavaScriptEvaluator
+    public internal(set) weak var context: JavaScriptEvaluator?
     weak var closureStore: ClosuresStore?
     internal var chartJSName: String?
     private weak var messageProducer: (any JavaScriptMessageProducer)?
@@ -34,7 +34,7 @@ public class SeriesObject: JavaScriptObject {
         _validationEnabled = enabled
     }
 
-    required init(context: JavaScriptEvaluator, closureStore: ClosuresStore?) {
+    required init(context: JavaScriptEvaluator?, closureStore: ClosuresStore?) {
         self.jsName = Self.name + .uniqueString
         self.context = context
         self.closureStore = closureStore
@@ -43,7 +43,7 @@ public class SeriesObject: JavaScriptObject {
         self.messageHandler.delegate = self
     }
 
-    internal init(context: JavaScriptEvaluator, closureStore: ClosuresStore?, jsName: String) {
+    internal init(context: JavaScriptEvaluator?, closureStore: ClosuresStore?, jsName: String) {
         self.jsName = jsName
         self.context = context
         self.closureStore = closureStore
@@ -52,12 +52,19 @@ public class SeriesObject: JavaScriptObject {
         self.messageHandler.delegate = self
     }
 
+    internal func requireContext() throws(JavaScriptBridgeError) -> JavaScriptEvaluator {
+        guard let context else {
+            throw JavaScriptBridgeError.contextUnavailable
+        }
+        return context
+    }
+
     internal func activateDataChangedSubscriptionIfNeeded() {
         guard dataChangedSubscriptionState != .active else {
             return
         }
 
-        guard let messageProducer else {
+        guard let context, let messageProducer else {
             return
         }
 
@@ -74,6 +81,11 @@ public class SeriesObject: JavaScriptObject {
 
     internal func deactivateDataChangedSubscription() {
         guard dataChangedSubscriptionState == .active else {
+            return
+        }
+
+        guard let context else {
+            dataChangedSubscriptionState = .declared
             return
         }
 

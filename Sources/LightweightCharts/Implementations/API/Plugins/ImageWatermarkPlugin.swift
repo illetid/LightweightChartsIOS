@@ -69,7 +69,7 @@ where Chart: JavaScriptObject {
         chart: Chart,
         paneIndex: Int,
         imageUrl: String,
-        context: JavaScriptEvaluator,
+        context: JavaScriptEvaluator?,
         options: ImageWatermarkOptions = ImageWatermarkOptions()
     ) {
         self.imageUrl = imageUrl

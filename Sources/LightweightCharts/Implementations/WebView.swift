@@ -1,11 +1,5 @@
 import WebKit
 
-// Private wrapper to bridge non-Sendable WKWebView results through async boundaries.
-// Safe because the contained value is only accessed on @MainActor after evaluation completes.
-private struct UnsafeJavaScriptResult: @unchecked Sendable {
-    let value: Any?
-}
-
 @MainActor
 public protocol JavaScriptErrorDelegate: AnyObject {
     
@@ -68,24 +62,18 @@ extension WebView: JavaScriptEvaluator {
     /// - Returns: The result of the evaluation, if any
     public func evaluateScript(_ script: String) async throws(JavaScriptBridgeError) -> Any? {
         try JavaScriptBridgeError.checkCancellation()
-        let resultBox: UnsafeJavaScriptResult
         do {
-            resultBox = try await withCheckedThrowingContinuation { continuation in
-                evaluateJavaScript(script) { [weak self] result, error in
-                    if let error = error {
-                        let bridgeError = JavaScriptBridgeError.wrap(error, script: script)
-                        self?.errorDelegate?.didFailEvaluateScript(script, withError: bridgeError)
-                        continuation.resume(throwing: bridgeError)
-                    } else {
-                        continuation.resume(returning: UnsafeJavaScriptResult(value: result))
-                    }
-                }
-            }
+            let result = try await evaluateJavaScript(script, contentWorld: .page)
+            try JavaScriptBridgeError.checkCancellation()
+            return result
         } catch {
-            throw JavaScriptBridgeError.wrap(error, script: script)
+            let bridgeError = JavaScriptBridgeError.wrap(error, script: script)
+            if case .cancelled = bridgeError {
+                throw bridgeError
+            }
+            errorDelegate?.didFailEvaluateScript(script, withError: bridgeError)
+            throw bridgeError
         }
-        try JavaScriptBridgeError.checkCancellation()
-        return resultBox.value
     }
 
     /// Evaluates JavaScript code and decodes the result as a specified type

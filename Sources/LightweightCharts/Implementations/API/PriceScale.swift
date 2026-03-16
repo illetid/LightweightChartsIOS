@@ -7,7 +7,7 @@ class PriceScale: JavaScriptObject {
     
     private weak var context: JavaScriptEvaluator?
         
-    init(context: JavaScriptEvaluator) {
+    init(context: JavaScriptEvaluator?) {
         self.context = context
     }
 
