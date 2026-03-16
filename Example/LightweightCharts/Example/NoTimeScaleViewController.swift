@@ -431,7 +431,9 @@ extension NoTimeScaleViewController: ChartDelegate {
     }
     
     func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams) {
-        guard case let .lineData(price) = parameters.price(forSeries: areaSeries),
+        guard let seriesData = parameters.data(forSeries: areaSeries),
+            seriesData.kind == .singleValue,
+            let priceValue = seriesData.value,
             let time = parameters.time,
             let point = parameters.point
             else {
@@ -450,7 +452,7 @@ extension NoTimeScaleViewController: ChartDelegate {
             dateString = time
         }
         
-        legendLabel.text = "\((price.value! * 100 / 100).rounded()) | \(dateString)"
+        legendLabel.text = "\((priceValue * 100 / 100).rounded()) | \(dateString)"
         legendLabel.isHidden = false
         let leading = CGFloat(point.x) - legendLabel.frame.width / 2
         let constant = max(0, min(self.chart.frame.width - legendLabel.frame.width, leading))

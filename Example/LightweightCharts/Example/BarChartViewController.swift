@@ -8,7 +8,7 @@ class BarChartViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black
+        view.backgroundColor = UIColor.black
         
         setupChart()
         setupData()
@@ -16,9 +16,9 @@ class BarChartViewController: UIViewController {
     
     private func setupChart() {
         let options = ChartOptions(
-            layout: LayoutOptions(background: .solid(color: ChartColor(.black)), textColor: ChartColor(.white)),
-            rightPriceScale: VisiblePriceScaleOptions(borderColor: ChartColor(.gray)),
-            timeScale: TimeScaleOptions(borderColor: ChartColor(.gray)),
+            layout: LayoutOptions(background: .solid(color: ChartColor(UIColor.black)), textColor: ChartColor(UIColor.white)),
+            rightPriceScale: VisiblePriceScaleOptions(borderColor: ChartColor(UIColor.gray)),
+            timeScale: TimeScaleOptions(borderColor: ChartColor(UIColor.gray)),
             crosshair: CrosshairOptions(mode: .normal),
             trackingMode: TrackingModeOptions(exitMode: .onTouchEnd)
         )
@@ -45,7 +45,7 @@ class BarChartViewController: UIViewController {
     }
     
     private func setupData() {
-        let options = BarSeriesOptions(upColor: ChartColor(.white), downColor: ChartColor(.white), thinBars: true)
+        let options = BarSeriesOptions(upColor: ChartColor(UIColor.white), downColor: ChartColor(UIColor.white), thinBars: true)
         let series = chart.addBarSeries(options: options)
         let data = [
             BarData(time: .string("2018-10-19"), open: 180.34, high: 180.99, low: 178.57, close: 179.85),

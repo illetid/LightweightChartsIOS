@@ -251,9 +251,11 @@ extension TrackingTooltipViewController: ChartDelegate {
     func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams) {
         if case let .businessDayString(date) = parameters.time,
             let point = parameters.point,
-            case let .lineData(price) = parameters.price(forSeries: series) {
+            let seriesData = parameters.data(forSeries: series),
+            seriesData.kind == .singleValue,
+            let priceValue = seriesData.value {
             
-            tooltipView.update(title: legend, price: price.value!, date: date)
+            tooltipView.update(title: legend, price: priceValue, date: date)
             tooltipView.isHidden = false
             leadingConstraint.constant = CGFloat(point.x) + 16
             bottomConstraint.constant = CGFloat(point.y) - 16
