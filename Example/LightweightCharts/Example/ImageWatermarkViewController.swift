@@ -1,21 +1,21 @@
 import UIKit
 import LightweightCharts
 
-/// Demonstrates the v5 text watermark plugin API.
+/// Demonstrates the v5 image watermark plugin API.
 ///
-/// This example uses the new `TextWatermarkPlugin` API introduced in v5,
-/// which replaces the deprecated `ChartOptions.watermark` property.
+/// This example uses the new `ImageWatermarkPlugin` API introduced in v5,
+/// which allows displaying image-based watermarks on charts.
 ///
-/// The plugin is created using `chart.createTextWatermarkPlugin(paneIndex:options:)` and
-/// provides explicit control over the watermark lifecycle.
+/// The plugin is created using `chart.createImageWatermarkPlugin(paneIndex:imageUrl:options:)`
+/// and supports data URLs, bundle resources, and remote URLs.
 ///
-/// For backward compatibility, the legacy `ChartOptions.watermark` property is still
-/// supported but deprecated. See the migration guide for details.
-class CustomWatermarkViewController: UIViewController {
+/// See the inline comments in `lightweightChartsDidLoad` for detailed usage notes
+/// on each image source type.
+class ImageWatermarkViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var series: AreaSeries!
-    private var watermark: TextWatermarkPlugin<Chart>?
+    private var watermark: ImageWatermarkPlugin<Chart>?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -58,7 +58,7 @@ class CustomWatermarkViewController: UIViewController {
         }
         self.chart = chart
     }
-    
+
     private func setupData() {
         let options = AreaSeriesOptions(
             topColor: "rgba(171, 71, 188, 0.56)",
@@ -67,8 +67,8 @@ class CustomWatermarkViewController: UIViewController {
             lineWidth: .two
         )
         let series = chart.addAreaSeries(options: options)
-        
-        let data = [            
+
+        let data = [
             AreaData(time: .string("2018-10-19"), value: 75.46),
             AreaData(time: .string("2018-10-22"), value: 76.69),
             AreaData(time: .string("2018-10-23"), value: 73.82),
@@ -226,36 +226,83 @@ class CustomWatermarkViewController: UIViewController {
 
     private func scheduleWatermarkUpdates() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            self?.watermark?.applyOptions(options: TextWatermarkUpdateOptions(lines: [
-                WatermarkLine(text: "Watermark Example", color: "rgba(171, 71, 188, 0.5)", fontSize: 24),
-                WatermarkLine(text: "Partial update", color: "rgba(15, 118, 110, 0.65)", fontSize: 18)
-            ]))
+            self?.watermark?.applyOptions(options: ImageWatermarkUpdateOptions(alpha: 0.3, maxWidth: 160))
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-            self?.watermark?.applyOptions(options: TextWatermarkUpdateOptions(
-                horizontalAlignment: .right,
-                verticalAlignment: .top
-            ))
+            self?.watermark?.applyOptions(options: ImageWatermarkUpdateOptions(padding: 28, maxHeight: 140))
         }
     }
 
 }
 
 // MARK: - LightweightChartsDelegate
-extension CustomWatermarkViewController: LightweightChartsDelegate {
+extension ImageWatermarkViewController: LightweightChartsDelegate {
 
     func lightweightChartsDidLoad(_ lightweightCharts: LightweightCharts) {
-        // Create the text watermark using the v5 plugin API after the chart loads.
-        // Then apply partial updates so the example demonstrates patch-style changes.
-        let watermarkOptions = TextWatermarkOptions(
-            horizontalAlignment: .center,
-            verticalAlignment: .center,
-            text: "Watermark Example",
-            color: "rgba(171, 71, 188, 0.5)",
-            fontSize: 24
+        // MARK: - Image Watermark Usage Notes
+
+        // The ImageWatermarkPlugin supports three types of image sources:
+        //
+        // 1. Data URLs (inline):
+        //    - Embed the image data directly as a base64-encoded string
+        //    - Format: "data:image/png;base64,<base64_data>" or "data:image/svg+xml;base64,<base64_data>"
+        //    - Pros: Works offline, no network dependency, self-contained
+        //    - Cons: Larger bundle size, not suitable for large images
+        //    - Example below uses this approach
+        //
+        // 2. Bundle resources (local files):
+        //    - Store image files in the app bundle and load them at runtime
+        //    - First, add the image to your app bundle (e.g., drag to project in Xcode)
+        //    - Then load it and convert to a URL the WKWebView can access:
+        //    ```
+        //    guard let imagePath = Bundle.main.path(forResource: "watermark", ofType: "png"),
+        //          let imageUrl = URL(string: "file://\(imagePath)")?.absoluteString else {
+        //        return
+        //    }
+        //    watermark = chart.createImageWatermarkPlugin(paneIndex: 0, imageUrl: imageUrl, options: watermarkOptions)
+        //    ```
+        //    - Pros: Smaller bundle size, easy to update images without code changes
+        //    - Cons: Requires bundle access management, file URL security considerations
+        //
+        // 3. Remote URLs (network resources):
+        //    - Load images from a server
+        //    - Example:
+        //    ```
+        //    let imageUrl = "https://example.com/watermark.png"
+        //    watermark = chart.createImageWatermarkPlugin(paneIndex: 0, imageUrl: imageUrl, options: watermarkOptions)
+        //    ```
+        //    - Pros: Dynamic content, can be updated without app updates
+        //    - Cons: Requires network connectivity, adds latency, URL security considerations
+        //
+        // This example uses a data URL with an embedded SVG to ensure it works offline
+        // and demonstrates the watermark functionality without external dependencies.
+
+        // Create the image watermark using the v5 plugin API after the chart loads.
+        // Using a data URL for a simple watermark SVG to ensure the example works offline.
+        let watermarkSvg = """
+        <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+            <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="24" fill="rgba(171, 71, 188, 0.3)"
+                  text-anchor="middle" dominant-baseline="middle" transform="rotate(-45, 100, 100)">
+                Watermark
+            </text>
+        </svg>
+        """
+
+                // Encode SVG to base64 data URL.
+                guard let svgData = watermarkSvg.data(using: .utf8) else {
+            return
+        }
+
+                let imageUrl = "data:image/svg+xml;base64,\(svgData.base64EncodedString())"
+
+        let watermarkOptions = ImageWatermarkOptions(
+            alpha: 0.5,
+            padding: 10,
+            maxWidth: 200,
+            maxHeight: 200
         )
-        watermark = try? chart.createTextWatermarkPlugin(paneIndex: 0, options: watermarkOptions)
+        watermark = try? chart.createImageWatermarkPlugin(paneIndex: 0, imageUrl: imageUrl, options: watermarkOptions)
         scheduleWatermarkUpdates()
     }
 

@@ -1,24 +1,26 @@
 import UIKit
 import LightweightCharts
 
-/// Demonstrates the backward-compatible markers API.
+/// Demonstrates the v5 explicit markers plugin API.
 ///
-/// This example intentionally uses the legacy `series.setMarkers(data:)` API
-/// to prove backward compatibility with the v4 API after the v5 migration.
+/// This example uses the new `SeriesMarkersPlugin` API introduced in v5,
+/// which provides explicit control over the plugin lifecycle and options.
 ///
-/// The compatibility layer internally uses the v5 `createSeriesMarkers` primitive,
-/// storing a reference to the plugin on the series object as `_lwcMarkersPlugin`.
-/// This allows existing code using `setMarkers` to continue working without changes.
+/// The plugin is created using `series.createMarkersPlugin(data:options:)` and
+/// can be controlled through the returned plugin instance, including:
+/// - Setting new markers with `setMarkers(_:)`
+/// - Reading current markers with `try await plugin.markers()` when needed
+/// - Applying options with `applyOptions(options:)`
+/// - Detaching the plugin with `detach()`
 ///
-/// For new code, consider using the explicit `SeriesMarkersPlugin` API which provides
-/// more control over the plugin lifecycle.
-///
-/// See `MarkersPluginViewController` for an example of the new v5 plugin API.
-class MarkersViewController: UIViewController {
+/// See `MarkersViewController` for an example of the backward-compatible
+/// `series.setMarkers(data:)` API which internally uses this plugin.
+class MarkersPluginViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var series: BarSeries!
-    
+    private var markersPlugin: SeriesMarkersPlugin<BarSeries>?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         if #available(iOS 13.0, *) {
@@ -26,12 +28,11 @@ class MarkersViewController: UIViewController {
         } else {
             view.backgroundColor = .white
         }
-        
+
         setupUI()
         chart.loadDelegate = self
     }
-    
-    
+
     private func setupUI() {
         let options = ChartOptions()
         let chart = LightweightCharts(options: options)
@@ -54,8 +55,8 @@ class MarkersViewController: UIViewController {
         }
         self.chart = chart
     }
-    
-    private func generateData() -> ([BarData], [SeriesMarker])  {
+
+    private func generateData() -> [BarData] {
         var time = DateComponents(calendar: .current, year: 2018, day: 0).date!
         var data: [BarData] = []
         for i in 0..<500 {
@@ -71,41 +72,44 @@ class MarkersViewController: UIViewController {
             )
             data.append(barData)
         }
-        
-        let markers = [
+        return data
+    }
+
+    private func generateMarkers(from data: [BarData]) -> [SeriesMarker] {
+        return [
             SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color: ChartColor(UIColor.orange)),
             SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color: ChartColor(UIColor.yellow)),
-            SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color:  ChartColor(UIColor.green)),
-            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(UIColor.orange)),
-            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(UIColor.yellow)),
-            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(UIColor.green)),
-            SeriesMarker(time: data[data.count - 15].time, position: .inBar, shape: .circle, color:  ChartColor(UIColor.orange)),
-            SeriesMarker(time: data[data.count - 10].time, position: .inBar, shape: .circle, color:  ChartColor(UIColor.red))
+            SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color: ChartColor(UIColor.green)),
+            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color: ChartColor(UIColor.orange)),
+            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color: ChartColor(UIColor.yellow)),
+            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color: ChartColor(UIColor.green)),
+            SeriesMarker(time: data[data.count - 15].time, position: .inBar, shape: .circle, color: ChartColor(UIColor.orange)),
+            SeriesMarker(time: data[data.count - 10].time, position: .inBar, shape: .circle, color: ChartColor(UIColor.red))
         ]
-        
-        return (data,markers)
     }
-    
 }
 
 // MARK: - LightweightChartsDelegate
-extension MarkersViewController: LightweightChartsDelegate {
+extension MarkersPluginViewController: LightweightChartsDelegate {
 
     func lightweightChartsDidLoad(_ lightweightCharts: LightweightCharts) {
-        let (data, markers) = generateData()
+        let data = generateData()
+        let markers = generateMarkers(from: data)
 
         let series = chart.addBarSeries(options: nil)
         self.series = series
         series.setData(data: data)
 
-        // Uses the backward-compatible setMarkers API.
-        // Internally, this creates a v5 createSeriesMarkers plugin if one doesn't exist,
-        // or updates the existing one on subsequent calls.
-        series.setMarkers(data: markers)
+        // Use the v5 explicit plugin API to create a markers plugin
+        let options = SeriesMarkersOptions(
+            active: true,
+            autoScale: true
+        )
+        markersPlugin = series.createMarkersPlugin(data: markers, options: options)
     }
-    
+
     func lightweightCharts(_ lightweightCharts: LightweightCharts, didFailLoadWithError error: Error) {
-        
+        // Handle error
     }
-    
+
 }

@@ -5,6 +5,7 @@ class ThreeLineLegendViewController: UIViewController {
 
     private var chart: LightweightCharts!
     private var series: AreaSeries!
+    private var crosshairTask: Task<Void, Never>?
     private let legendLabel = UILabel()
     private let legend = "AEROSPACE"
     private let data = [
@@ -310,6 +311,10 @@ class ThreeLineLegendViewController: UIViewController {
         AreaData(time: .string("2019-06-05"), value: 86.51)
     ]
     
+    deinit {
+        crosshairTask?.cancel()
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         if #available(iOS 13.0, *) {
@@ -403,8 +408,13 @@ class ThreeLineLegendViewController: UIViewController {
     }
     
     private func setupSubscription() {
-        chart.delegate = self
-        chart.subscribeCrosshairMove()
+        crosshairTask?.cancel()
+        crosshairTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            for await parameters in self.chart.crosshairMoveEvents {
+                self.handleCrosshairMove(parameters)
+            }
+        }
     }
 
     private func setLastBarText() {
@@ -420,30 +430,17 @@ class ThreeLineLegendViewController: UIViewController {
         }
         legendLabel.text = "\(legend)\n\((bar.value! * 100).rounded() / 100)\n\(dateString)"
     }
-    
-}
 
-// MARK: - ChartDelegate
-extension ThreeLineLegendViewController: ChartDelegate {
-    
-    func didClick(onChart chart: ChartApi, parameters: MouseEventParams) {
-        
-    }
-    
-    func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams) {
+    private func handleCrosshairMove(_ parameters: MouseEventParams) {
         if case let .businessDayString(date) = parameters.time,
             let seriesData = parameters.data(forSeries: series),
             seriesData.kind == .singleValue,
-            let priceValue = seriesData.value {
-            
-            self.legendLabel.text = "\(self.legend)\n\((priceValue * 100).rounded() / 100)\n\(date)"
+            let value = seriesData.value {
+
+            legendLabel.text = "\(legend)\n\((value * 100).rounded() / 100)\n\(date)"
         } else {
             setLastBarText()
         }
-    }
-    
-    func didVisibleTimeRangeChange(onChart chart: ChartApi, parameters: TimeRange?) {
-        
     }
     
 }
