@@ -251,17 +251,21 @@ extension GoToRealtimeButtonViewController: TimeScaleDelegate {
     
     func didVisibleTimeRangeChange(onTimeScale timeScale: TimeScaleApi, parameters: TimeRange?) {
         Task { @MainActor [weak self] in
-            guard let self = self else { return }
-            let position = (try? await timeScale.scrollPosition()) ?? 0
-            let isHidden = position >= 0
-            if !isHidden {
-                self.button.isHidden = false
+            do {
+                let position = try await timeScale.scrollPosition()
+                let isHidden = position >= 0
+                if !isHidden {
+                    self?.button.isHidden = false
+                }
+                UIView.animate(withDuration: 0.33, animations: {
+                    self?.button.alpha = isHidden ? 0 : 1
+                }, completion: { _ in
+                    self?.button.isHidden = isHidden
+                })
+            } catch {
+                self?.button.isHidden = true
+                self?.button.alpha = 0
             }
-            UIView.animate(withDuration: 0.33, animations: {
-                self.button.alpha = isHidden ? 0 : 1
-            }, completion: { _ in
-                self.button.isHidden = isHidden
-            })
         }
     }
     
