@@ -1,7 +1,9 @@
 import Foundation
 import UIKit
 
-public final class ChartColor: UIColor {
+// UIColor is reference-typed and imported without Sendable guarantees, but this wrapper is
+// used as an immutable RGBA value container throughout the public options surface.
+public final class ChartColor: UIColor, @unchecked Sendable {
     
     public convenience init(_ color: UIColor) {
         self.init(colorComponents: color.components)
@@ -15,11 +17,31 @@ public final class ChartColor: UIColor {
             alpha: colorComponents.alpha
         )
     }
+
+    public convenience init(hex: UInt32, alpha: CGFloat = 1.0) {
+        let r = CGFloat((hex & 0xFF0000) >> 16) / 255.0
+        let g = CGFloat((hex & 0x00FF00) >> 8) / 255.0
+        let b = CGFloat(hex & 0x0000FF) / 255.0
+        self.init(red: r, green: g, blue: b, alpha: alpha)
+    }
     
 }
 
 // MARK: - Codable
-extension ChartColor: Codable { }
+extension ChartColor: Codable {
+
+    public convenience init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        self.init(rawValue: raw)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+}
 
 // MARK: - RawRepresentable
 extension ChartColor: RawRepresentable {

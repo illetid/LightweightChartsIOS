@@ -4,6 +4,7 @@ import WebKit
 protocol ClosuresStore: AnyObject {
         
     func addMethod<Input, Output>(_ method: JavaScriptMethod<Input, Output>, forName name: String)
+    func removeAllMethods()
     
 }
 
@@ -22,10 +23,15 @@ class PromptHandler: NSObject, ClosuresStore {
             break
         }
     }
+
+    func removeAllMethods() {
+        closures.removeAll()
+    }
     
 }
 
 // MARK: - WKUIDelegate
+@MainActor
 extension PromptHandler: WKUIDelegate {
     
     struct Payload: Decodable {
@@ -37,7 +43,8 @@ extension PromptHandler: WKUIDelegate {
         runJavaScriptTextInputPanelWithPrompt prompt: String,
         defaultText: String?,
         initiatedByFrame frame: WKFrameInfo,
-        completionHandler: @escaping (String?) -> Void) {
+        completionHandler: @escaping @MainActor @Sendable (String?) -> Void
+    ) {
         
         if let payloadData = prompt.data(using: .utf8, allowLossyConversion: false),
             let payload = try? decoder.decode(Payload.self, from: payloadData) {

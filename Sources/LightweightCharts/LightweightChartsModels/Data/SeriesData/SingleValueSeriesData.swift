@@ -3,8 +3,8 @@ import Foundation
 /**
  A base interface for a data point of single-value series
  */
-public protocol SingleValueSeriesData : SeriesData {
-    
+public protocol SingleValueSeriesData: SeriesData, Sendable {
+
     /**
      * Price value of data item
      */
@@ -12,10 +12,10 @@ public protocol SingleValueSeriesData : SeriesData {
 }
 
 
-public struct SingleValueData : SingleValueSeriesData {
+public struct SingleValueData : SingleValueSeriesData, Sendable {
     public var time: Time
     public var value: Double?
-    
+
     public init(time: Time, value: Double?) {
         self.time = time
         self.value = value

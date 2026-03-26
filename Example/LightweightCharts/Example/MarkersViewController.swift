@@ -60,14 +60,14 @@ class MarkersViewController: UIViewController {
         }
         
         let markers = [
-            SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color: ChartColor(.orange)),
-            SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color: ChartColor(.yellow)),
-            SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color:  ChartColor(.green)),
-            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(.orange)),
-            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(.yellow)),
-            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(.green)),
-            SeriesMarker(time: data[data.count - 15].time, position: .inBar, shape: .circle, color:  ChartColor(.orange)),
-            SeriesMarker(time: data[data.count - 10].time, position: .inBar, shape: .circle, color:  ChartColor(.red))
+            SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color: ChartColor(UIColor.orange)),
+            SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color: ChartColor(UIColor.yellow)),
+            SeriesMarker(time: data[data.count - 30].time, position: .belowBar, shape: .circle, color:  ChartColor(UIColor.green)),
+            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(UIColor.orange)),
+            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(UIColor.yellow)),
+            SeriesMarker(time: data[data.count - 20].time, position: .aboveBar, shape: .circle, color:  ChartColor(UIColor.green)),
+            SeriesMarker(time: data[data.count - 15].time, position: .inBar, shape: .circle, color:  ChartColor(UIColor.orange)),
+            SeriesMarker(time: data[data.count - 10].time, position: .inBar, shape: .circle, color:  ChartColor(UIColor.red))
         ]
         
         return (data,markers)

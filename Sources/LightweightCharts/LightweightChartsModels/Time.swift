@@ -1,9 +1,18 @@
 import Foundation
 
-public enum Time {
+public enum Time: Equatable, Sendable {
     case utc(timestamp: Double)
     case businessDay(BusinessDay)
     case string(String)
+}
+
+// MARK: - Convenience Initializers
+extension Time {
+
+    /// Creates a UTC time from a Unix timestamp (alias for .utc)
+    public static func unix(_ timestamp: Double) -> Time {
+        return .utc(timestamp: timestamp)
+    }
 }
 
 // MARK: - Codable

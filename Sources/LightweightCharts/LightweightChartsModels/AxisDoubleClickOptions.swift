@@ -1,6 +1,6 @@
 import Foundation
 
-public struct AxisDoubleClickOptions: Codable {
+public struct AxisDoubleClickOptions: Codable, Sendable {
     
     /**
      * Enable resetting scaling the time axis by double-clicking.

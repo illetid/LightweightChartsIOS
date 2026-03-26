@@ -1,10 +1,10 @@
 import Foundation
 
-public enum SeriesDataType<T>: SeriesData where T: SeriesData {
-    
+public enum SeriesDataType<T>: SeriesData, Sendable where T: SeriesData {
+
     case data(T)
     case whitespace(WhitespaceData)
-    
+
     public var time: Time {
         switch self {
         case let .data(data):
@@ -13,12 +13,12 @@ public enum SeriesDataType<T>: SeriesData where T: SeriesData {
             return whitespaceData.time
         }
     }
-    
+
 }
 
 // MARK: - Codable
 extension SeriesDataType: Codable {
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let data = try? container.decode(T.self) {
@@ -32,7 +32,7 @@ extension SeriesDataType: Codable {
             )
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -42,5 +42,5 @@ extension SeriesDataType: Codable {
             try container.encode(whitespaceData)
         }
     }
-    
+
 }

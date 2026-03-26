@@ -7,7 +7,7 @@ extension Encodable {
         guard let jsonData = try? JSONEncoder().encode(self),
               let jsonString = String(data: jsonData, encoding: .utf8)
         else {
-            return ""
+            return "null"
         }
         return jsonString
     }

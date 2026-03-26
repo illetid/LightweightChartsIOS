@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 public protocol TimeScaleDelegate: AnyObject {
     
     func didVisibleTimeRangeChange(onTimeScale timeScale: TimeScaleApi, parameters: TimeRange?)
@@ -9,6 +10,7 @@ public protocol TimeScaleDelegate: AnyObject {
 }
 
 // MARK: -
+@MainActor
 class TimeScale: JavaScriptObject {
     
     enum SubscribeState: CaseIterable {
@@ -27,14 +29,21 @@ class TimeScale: JavaScriptObject {
     private let messageHandler: MessageHandler
     private var activeSubscriptions: Dictionary<Subscription,SubscribeState> = [:]
     
-    init(context: Context, closureStore: ClosuresStore?) {
+    init(context: Context?, closureStore: ClosuresStore?) {
         self.context = context
         self.closureStore = closureStore
         messageHandler = MessageHandler()
         messageHandler.delegate = self
     }
+
+    private func requireContext() throws(JavaScriptBridgeError) -> Context {
+        guard let context = context else {
+            throw JavaScriptBridgeError.contextUnavailable
+        }
+        return context
+    }
     
-    private func subsriberScript(forName name: String, subscription: Subscription) -> String {
+    private func subscriberScript(forName name: String, subscription: Subscription) -> String {
         switch subscription {
         case .crosshairMove, .click:
             return "var \(name) = subscriberCrosshairMoveAndClickFunction('\(name)');"
@@ -43,8 +52,8 @@ class TimeScale: JavaScriptObject {
         }
     }
     
-    private func subscriberName(for subsription: Subscription) -> String {
-        return "\(subsription.rawValue)_\(jsName)"
+    private func subscriberName(for subscription: Subscription) -> String {
+        return "\(subscription.rawValue)_\(jsName)"
     }
     
     private func subscribe(subscription: Subscription) {
@@ -53,151 +62,152 @@ class TimeScale: JavaScriptObject {
             return
         }
         let name = subscriberName(for: subscription)
-        var subscriberScript = ""
+        var handlerDeclaration = ""
         if (activeSubscriptions[subscription] != .declared) {
-            subscriberScript = subsriberScript(forName: name, subscription: subscription)
+            handlerDeclaration = subscriberScript(forName: name, subscription: subscription)
             context?.addMessageHandler(messageHandler, name: name)
         }
-        let script = subscriberScript + "\n\(jsName).subscribe\(subscription.jsRepresentation)(\(name));"
-        context?.evaluateScript(script, completion: nil)
+        let script = handlerDeclaration + "\n\(jsName).subscribe\(subscription.jsRepresentation)(\(name));"
+        context?.submitScript(script)
         activeSubscriptions[subscription] = .active
     }
     
-    private func unsubscribe(subsription: Subscription) {
-        if (activeSubscriptions[subsription] != .active) {
-            NSLog("LWChart: double unsubscribe detected \(subsription)")
+    private func unsubscribe(subscription: Subscription) {
+        if (activeSubscriptions[subscription] != .active) {
+            NSLog("LWChart: double unsubscribe detected \(subscription)")
             return
         }
-        let name = subscriberName(for: subsription)
-        let script = "\(jsName).unsubscribe\(subsription.jsRepresentation)(\(name));"
-        context?.evaluateScript(script, completion: nil)
-        activeSubscriptions[subsription] = .declared
+        let name = subscriberName(for: subscription)
+        let script = "\(jsName).unsubscribe\(subscription.jsRepresentation)(\(name));"
+        context?.submitScript(script)
+        activeSubscriptions[subscription] = .declared
     }
     
 }
 
 // MARK: - TimeScaleApi
 extension TimeScale: TimeScaleApi {
-    
-    func scrollPosition(completion: @escaping (Double?) -> Void) {
+
+    // MARK: - Async methods (Swift 6)
+
+    func scrollPosition() async throws(JavaScriptBridgeError) -> Double {
         let script = "\(jsName).scrollPosition();"
-        context?.evaluateScript(script) { (result, _) in
-            completion(result as? Double)
-        }
+        return try await requireContext().evaluate(script: script, resultType: Double.self)
     }
-    
+
+    func getVisibleRange() async throws(JavaScriptBridgeError) -> TimeRange? {
+        let script = "\(jsName).getVisibleRange();"
+        return try await requireContext().decodedResult(forScript: script)
+    }
+
+    func getVisibleLogicalRange() async throws(JavaScriptBridgeError) -> LogicalRange? {
+        let script = "\(jsName).getVisibleLogicalRange();"
+        return try await requireContext().decodedResult(forScript: script)
+    }
+
+    func logicalToCoordinate(logical: Logical) async throws(JavaScriptBridgeError) -> Coordinate? {
+        let script = "\(jsName).logicalToCoordinate(\(logical));"
+        return try await requireContext().evaluate(script: script, resultType: Coordinate?.self)
+    }
+
+    func coordinateToLogical(x: Double) async throws(JavaScriptBridgeError) -> Logical? {
+        let script = "\(jsName).coordinateToLogical(\(x));"
+        return try await requireContext().evaluate(script: script, resultType: Logical?.self)
+    }
+
+    func timeToCoordinate(time: Time) async throws(JavaScriptBridgeError) -> Coordinate? {
+        let script = "\(jsName).timeToCoordinate(\(time.jsonString));"
+        return try await requireContext().evaluate(script: script, resultType: Coordinate?.self)
+    }
+
+    func timeToIndex(time: Time, findNearest: Bool) async throws(JavaScriptBridgeError) -> Int? {
+        let script = "\(jsName).timeToIndex(\(time.jsonString), \(findNearest ? "true" : "false"));"
+        return try await requireContext().evaluate(script: script, resultType: Int?.self)
+    }
+
+    func coordinateToTime(x: Double) async throws(JavaScriptBridgeError) -> Time? {
+        let script = "\(jsName).coordinateToTime(\(x));"
+        return try await requireContext().decodedResult(forScript: script)
+    }
+
+    func width() async throws(JavaScriptBridgeError) -> Double {
+        let script = "\(jsName).width();"
+        return try await requireContext().evaluate(script: script, resultType: Double.self)
+    }
+
+    func height() async throws(JavaScriptBridgeError) -> Double {
+        let script = "\(jsName).height();"
+        return try await requireContext().evaluate(script: script, resultType: Double.self)
+    }
+
+    func options() async throws(JavaScriptBridgeError) -> TimeScaleOptions {
+        let script = "\(jsName).options();"
+        return try await requireContext().decodedResult(forScript: script)
+    }
+
+    // MARK: - Synchronous methods
+
     func scrollToPosition(position: Double, animated: Bool) {
         let script = "\(jsName).scrollToPosition(\(position), \(animated));"
-        context?.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
-    
+
     func scrollToRealTime() {
         let script = "\(jsName).scrollToRealTime();"
-        context?.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
-    
-    func getVisibleRange(completion: @escaping (TimeRange?) -> Void) {
-        let script = "\(jsName).getVisibleRange();"
-        context?.decodedResult(forScript: script, completion: completion)
-    }
-    
+
     func setVisibleRange(range: TimeRange) {
         let script = "\(jsName).setVisibleRange(\(range.jsonString));"
-        context?.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
-    
-    func getVisibleLogicalRange(completion: @escaping (LogicalRange?) -> Void) {
-        let script = "\(jsName).getVisibleLogicalRange();"
-        context?.decodedResult(forScript: script, completion: completion)
-    }
-    
+
     func setVisibleLogicalRange(range: FromToRange<Double>) {
         let script = "\(jsName).setVisibleLogicalRange(\(range.jsonString));"
-        context?.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
-    
+
     func resetTimeScale() {
         let script = "\(jsName).resetTimeScale();"
-        context?.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
-    
+
     func fitContent() {
         let script = "\(jsName).fitContent();"
-        context?.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
-    
-    func logicalToCoordinate(logical: Logical, completion: @escaping (Coordinate?) -> Void) {
-        let script = "\(jsName).logicalToCoordinate(\(logical));"
-        context?.evaluateScript(script) { (result, _) in
-            completion(result as? Coordinate)
-        }
-    }
-    
-    func coordinateToLogical(x: Double, completion: @escaping (Logical?) -> Void) {
-        let script = "\(jsName).coordinateToLogical(\(x));"
-        context?.evaluateScript(script) { (result, _) in
-            completion(result as? Logical)
-        }
-    }
-    
-    func timeToCoordinate(time: Time, completion: @escaping (Coordinate?) -> Void) {
-        let script = "\(jsName).timeToCoordinate(\(time.jsonString));"
-        context?.evaluateScript(script) { (result, _) in
-            completion(result as? Coordinate)
-        }
-    }
-    
-    func coordinateToTime(x: Double, completion: @escaping (Time?) -> Void) {
-        let script = "\(jsName).coordinateToTime(\(x));"
-        context?.decodedResult(forScript: script, completion: completion)
-    }
-    
+
     func subscribeVisibleTimeRangeChange() {
         subscribe(subscription: .visibleTimeRangeChange)
     }
-    
+
     func unsubscribeVisibleTimeRangeChange() {
-        unsubscribe(subsription: .visibleTimeRangeChange)
+        unsubscribe(subscription: .visibleTimeRangeChange)
     }
-    
+
     func subscribeVisibleLogicalRangeChange() {
         subscribe(subscription: .visibleLogicalRangeChange)
     }
-    
+
     func unsubscribeVisibleLogicalRangeChange() {
-        unsubscribe(subsription: .visibleLogicalRangeChange)
+        unsubscribe(subscription: .visibleLogicalRangeChange)
     }
-    
+
     func applyOptions(options: TimeScaleOptions) {
         let optionsScript = options.optionsScript(for: closureStore)
         let script = """
         \(optionsScript.options)
         \(jsName).applyOptions(\(optionsScript.variableName));
         """
-        context?.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
-    
-    func options(completion: @escaping (TimeScaleOptions?) -> Void) {
-        let script = "\(jsName).options();"
-        context?.decodedResult(forScript: script, completion: completion)
-    }
-    
-    func width(completion: @escaping (Double?) -> Void) {
-        let script = "\(jsName).width();"
-        context?.decodedResult(forScript: script, completion: completion)
-    }
-    
-    func height(completion: @escaping (Double?) -> Void) {
-        let script = "\(jsName).height();"
-        context?.decodedResult(forScript: script, completion: completion)
-    }
-    
+
     func subscribeSizeChange() {
         subscribe(subscription: .timeScaleSizeChange)
     }
-    
+
     func unsubscribeSizeChange() {
-        unsubscribe(subsription: .timeScaleSizeChange)
+        unsubscribe(subscription: .timeScaleSizeChange)
     }
 }
 
@@ -207,9 +217,17 @@ extension TimeScale: MessageHandlerDelegate {
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveClickWithParameters parameters: MouseEventParams) {
     }
+
+    func messageHandler(_ messageHandler: MessageHandler,
+                        didReceiveDblClickWithParameters parameters: MouseEventParams) {
+    }
     
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveCrosshairMoveWithParameters parameters: MouseEventParams) {
+    }
+
+    func messageHandler(_ messageHandler: MessageHandler,
+                        didReceiveDataChangedWithScope scope: DataChangedScope) {
     }
     
     func messageHandler(_ messageHandler: MessageHandler,

@@ -1,15 +1,15 @@
 import Foundation
 
-public struct FromToRange<T> {
+public struct FromToRange<T: Sendable>: Sendable {
 
     public var from: T
     public var to: T
-    
+
     public init(from: T, to: T) {
         self.from = from
         self.to = to
     }
-    
+
 }
 
 // MARK: -

@@ -1,15 +1,15 @@
 import Foundation
 
 /// Enum that describes scrolling behavior or boolean flag that disables/enables all kinds of scrolls
-public enum HandleScrollOptions {
+public enum HandleScrollOptions: Sendable {
     case options(Options)
     case enabled(Bool)
 }
 
 // MARK: -
 extension HandleScrollOptions {
-    
-    public struct Options: Codable {
+
+    public struct Options: Codable, Sendable {
         
         public var mouseWheel: Bool?
         public var pressedMouseMove: Bool?

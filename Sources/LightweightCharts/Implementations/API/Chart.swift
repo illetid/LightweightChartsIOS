@@ -1,31 +1,48 @@
 import Foundation
 import WebKit
 
+@MainActor
 public protocol ChartDelegate: AnyObject {
     
     func didClick(onChart chart: ChartApi, parameters: MouseEventParams)
+    func didDoubleClick(onChart chart: ChartApi, parameters: MouseEventParams)
     func didCrosshairMove(onChart chart: ChartApi, parameters: MouseEventParams)
     
 }
 
 // MARK: -
-class Chart: JavaScriptObject {
+/// Internal implementation of the Chart API.
+///
+/// This class is the concrete implementation of the chart functionality.
+/// Most users should interact with charts through the `LightweightCharts` view
+/// or the `ChartApi` protocol.
+@MainActor
+public class Chart: JavaScriptObject {
     
     enum SubscribeState: CaseIterable {
         case declared
         case active
     }
+
+    /// The context type for chart operations.
+    public typealias Context = JavaScriptEvaluator & JavaScriptMessageProducer
+    private typealias MouseEventContinuation = AsyncStream<MouseEventParams>.Continuation
     
-    typealias Context = JavaScriptEvaluator & JavaScriptMessageProducer
-    
-    let jsName = "chart" + .uniqueString
-    
-    weak var delegate: ChartDelegate?
-    
-    private unowned var context: Context
+    public let jsName = "chart" + .uniqueString
+
+    public weak var delegate: ChartDelegate?
+
+    /// The JavaScript evaluator context for this chart.
+    public internal(set) weak var context: Context?
+
     private let messageHandler: MessageHandler
     private weak var closureStore: ClosuresStore?
     private var activeSubscriptions: Dictionary<Subscription,SubscribeState> = [:]
+    private var manualSubscriptions: Set<Subscription> = []
+    private var clickEventContinuations: [UUID: MouseEventContinuation] = [:]
+    private var doubleClickEventContinuations: [UUID: MouseEventContinuation] = [:]
+    private var crosshairMoveEventContinuations: [UUID: MouseEventContinuation] = [:]
+    private var legacyWatermarkOptions: DeprecatedWatermarkOptions?
     
     init(context: Context, closureStore: ClosuresStore?) {
         self.context = context
@@ -33,22 +50,123 @@ class Chart: JavaScriptObject {
         messageHandler = MessageHandler()
         messageHandler.delegate = self
     }
-    
-    private func addSeries<T: SeriesApi & SeriesObject>(options: T.Options) -> T {
+
+    private func requireContext() throws(JavaScriptBridgeError) -> Context {
+        guard let context else {
+            throw JavaScriptBridgeError.contextUnavailable
+        }
+        return context
+    }
+
+    private func paneScopedCreationScript(objectName: String, paneIndex: Int, factoryCall: String) -> String {
+        """
+        (function() {
+            var panes = \(jsName).panes();
+            if (!panes || !panes[\(paneIndex)]) {
+                throw new Error('Invalid pane index: \(paneIndex). Pane does not exist in this chart.');
+            }
+            window['\(objectName)'] = \(factoryCall);
+        })();
+        """
+    }
+
+    // MARK: - Legacy Watermark Compatibility (task 4.4)
+
+    /// Helper struct to encode v5 text watermark options for legacy compatibility
+    private struct LegacyTextWatermarkOptions: Encodable {
+        let visible: Bool
+        let horzAlign: String
+        let vertAlign: String
+        let lines: [WatermarkLine]
+
+        struct WatermarkLine: Encodable {
+            let text: String
+            let color: String
+            let fontSize: Int
+            let fontFamily: String
+            let fontStyle: String
+        }
+    }
+
+    /// Creates or updates the legacy text watermark from v4 watermark options
+    /// This compatibility layer converts v4 watermark options to v5 text watermark primitive
+    func applyLegacyWatermark(_ options: DeprecatedWatermarkOptions?) {
+        // Store options for later use in applyOptions
+        legacyWatermarkOptions = options
+
+        guard let options = options, options.visible ?? true else {
+            // If watermark is not visible, remove it
+            removeLegacyWatermark()
+            return
+        }
+
+        // Convert v4 WatermarkOptions to v5 TextWatermarkOptions format
+        let color = options.color ?? ChartColor("rgba(171, 71, 188, 0.5)")
+        let colorString = color.rawValue
+        let text = options.text ?? ""
+        let fontSize = options.fontSize ?? 24
+        let fontFamily = options.fontFamily ?? "-apple-system"
+        let fontStyle = options.fontStyle ?? "normal"
+        let horzAlign = options.horizontalAlignment ?? .center
+        let vertAlign = options.verticalAlignment ?? .center
+
+        // Build the v5 text watermark options using Encodable helper
+        let watermarkOptions = LegacyTextWatermarkOptions(
+            visible: true,
+            horzAlign: horzAlign.rawValue,
+            vertAlign: vertAlign.rawValue,
+            lines: [
+                LegacyTextWatermarkOptions.WatermarkLine(
+                    text: text,
+                    color: colorString,
+                    fontSize: fontSize,
+                    fontFamily: fontFamily,
+                    fontStyle: fontStyle
+                )
+            ]
+        )
+
+        // Create or update the legacy watermark
+        let script = """
+        if (typeof \(jsName)._lwcTextWatermark === 'undefined') {
+            var pane = \(jsName).panes()[0];
+            if (pane) {
+                \(jsName)._lwcTextWatermark = LightweightCharts.createTextWatermark(pane, \(watermarkOptions.jsonString));
+            }
+        } else {
+            \(jsName)._lwcTextWatermark.applyOptions(\(watermarkOptions.jsonString));
+        }
+        """
+        context?.submitScript(script)
+    }
+
+    /// Removes the legacy watermark if it exists
+    private func removeLegacyWatermark() {
+        let script = """
+        if (typeof \(jsName)._lwcTextWatermark !== 'undefined') {
+            \(jsName)._lwcTextWatermark.detach();
+            delete \(jsName)._lwcTextWatermark;
+        }
+        """
+        context?.submitScript(script)
+    }
+
+    private func addSeries<T: SeriesApi & SeriesObject>(options: T.Options, paneIndex: Int = 0) -> T {
         let series = T(context: context, closureStore: closureStore)
+        series.chartJSName = jsName
         let optionsScript = options.optionsScript(for: closureStore)
         let script = """
         \(optionsScript.options)
-        var \(series.jsName) = \(jsName).add\(T.name)(\(optionsScript.variableName));
+        var \(series.jsName) = \(jsName).addSeries(LightweightCharts.\(T.name), \(optionsScript.variableName), \(paneIndex));
         seriesArray.push({name: "\(series.jsName)", series: \(series.jsName)});
         """
-        context.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
         return series
     }
     
-    private func subsriberScript(forName name: String, subscription: Subscription) -> String {
+    private func makeSubscriberScript(forName name: String, subscription: Subscription) -> String {
         switch subscription {
-        case .crosshairMove, .click:
+        case .crosshairMove, .click, .dblClick:
             return "var \(name) = subscriberCrosshairMoveAndClickFunction('\(name)');"
         default:
             return "var \(name) = postMessageFunction('\(name)');"
@@ -58,168 +176,477 @@ class Chart: JavaScriptObject {
     private func subscriberName(for subsription: Subscription) -> String {
         return "\(subsription.rawValue)_\(jsName)"
     }
-    
-    private func subscribe(subscription: Subscription) {
-        if (activeSubscriptions[subscription] == .active) {
-            NSLog("LWChart: double subscribe detected \(subscription)")
+
+    private func continuations(for subscription: Subscription) -> [UUID: MouseEventContinuation] {
+        switch subscription {
+        case .click:
+            return clickEventContinuations
+        case .dblClick:
+            return doubleClickEventContinuations
+        case .crosshairMove:
+            return crosshairMoveEventContinuations
+        default:
+            return [:]
+        }
+    }
+
+    private func setContinuations(_ continuations: [UUID: MouseEventContinuation], for subscription: Subscription) {
+        switch subscription {
+        case .click:
+            clickEventContinuations = continuations
+        case .dblClick:
+            doubleClickEventContinuations = continuations
+        case .crosshairMove:
+            crosshairMoveEventContinuations = continuations
+        default:
+            break
+        }
+    }
+
+    private func activateSubscriptionIfNeeded(_ subscription: Subscription) {
+        guard activeSubscriptions[subscription] != .active else {
             return
         }
+
+        guard let context else {
+            return
+        }
+
         let name = subscriberName(for: subscription)
         var subscriberScript = ""
-        if (activeSubscriptions[subscription] != .declared) {
-            subscriberScript = subsriberScript(forName: name, subscription: subscription)
+        if activeSubscriptions[subscription] != .declared {
+            subscriberScript = makeSubscriberScript(forName: name, subscription: subscription)
             context.addMessageHandler(messageHandler, name: name)
         }
         let script = subscriberScript + "\n\(jsName).subscribe\(subscription.jsRepresentation)(\(name));"
-        context.evaluateScript(script, completion: nil)
+        context.submitScript(script)
         activeSubscriptions[subscription] = .active
+    }
+
+    private func deactivateSubscription(_ subscription: Subscription) {
+        guard activeSubscriptions[subscription] == .active else {
+            return
+        }
+
+        guard let context else {
+            activeSubscriptions[subscription] = .declared
+            return
+        }
+
+        let name = subscriberName(for: subscription)
+        let script = "\(jsName).unsubscribe\(subscription.jsRepresentation)(\(name));"
+        context.submitScript(script)
+        activeSubscriptions[subscription] = .declared
+    }
+
+    private func deactivateSubscriptionIfPossible(_ subscription: Subscription) {
+        guard !manualSubscriptions.contains(subscription), continuations(for: subscription).isEmpty else {
+            return
+        }
+
+        deactivateSubscription(subscription)
+    }
+
+    private func makeEventStream(for subscription: Subscription) -> AsyncStream<MouseEventParams> {
+        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            let id = UUID()
+            var currentContinuations = continuations(for: subscription)
+            currentContinuations[id] = continuation
+            setContinuations(currentContinuations, for: subscription)
+            activateSubscriptionIfNeeded(subscription)
+
+            continuation.onTermination = { @Sendable [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    var remainingContinuations = self.continuations(for: subscription)
+                    remainingContinuations.removeValue(forKey: id)
+                    self.setContinuations(remainingContinuations, for: subscription)
+                    self.deactivateSubscriptionIfPossible(subscription)
+                }
+            }
+        }
+    }
+
+    private func finishEventStreams() {
+        clickEventContinuations.values.forEach { $0.finish() }
+        doubleClickEventContinuations.values.forEach { $0.finish() }
+        crosshairMoveEventContinuations.values.forEach { $0.finish() }
+        clickEventContinuations.removeAll()
+        doubleClickEventContinuations.removeAll()
+        crosshairMoveEventContinuations.removeAll()
+    }
+
+    private func yield(_ parameters: MouseEventParams, for subscription: Subscription) {
+        continuations(for: subscription).values.forEach { $0.yield(parameters) }
+    }
+    
+    private func subscribe(subscription: Subscription) {
+        let inserted = manualSubscriptions.insert(subscription).inserted
+        if !inserted && activeSubscriptions[subscription] == .active {
+            NSLog("LWChart: double subscribe detected \(subscription)")
+            return
+        }
+        activateSubscriptionIfNeeded(subscription)
     }
     
     private func unsubscribe(subsription: Subscription) {
-        if (activeSubscriptions[subsription] != .active) {
+        let removed = manualSubscriptions.remove(subsription) != nil
+        if !removed && activeSubscriptions[subsription] != .active {
             NSLog("LWChart: double unsubscribe detected \(subsription)")
             return
         }
-        let name = subscriberName(for: subsription)
-        let script = "\(jsName).unsubscribe\(subsription.jsRepresentation)(\(name));"
-        context.evaluateScript(script, completion: nil)
-        activeSubscriptions[subsription] = .declared
+        deactivateSubscriptionIfPossible(subsription)
     }
     
     private func unsubscribeAll() {
-        unsubscribeClick()
-        unsubscribeCrosshairMove()
+        manualSubscriptions.removeAll()
+        deactivateSubscription(.click)
+        deactivateSubscription(.dblClick)
+        deactivateSubscription(.crosshairMove)
     }
     
 }
 
 // MARK: - ChartApi
 extension Chart: ChartApi {
-    
-    func remove() {
+
+    public var clickEvents: AsyncStream<MouseEventParams> {
+        makeEventStream(for: .click)
+    }
+
+    public var doubleClickEvents: AsyncStream<MouseEventParams> {
+        makeEventStream(for: .dblClick)
+    }
+
+    public var crosshairMoveEvents: AsyncStream<MouseEventParams> {
+        makeEventStream(for: .crosshairMove)
+    }
+
+    public func remove() {
+        removeLegacyWatermark()
+        finishEventStreams()
         unsubscribeAll()
         let script = "\(jsName).remove();"
-        context.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
     
-    func resize(width: Double, height: Double, forceRepaint: Bool?) {
+    public func resize(width: Double, height: Double, forceRepaint: Bool?) {
         var parameters = "\(width), \(height)"
         if let forceRepaint = forceRepaint {
             parameters += ", \(forceRepaint)"
         }
         let script = "\(jsName).resize(\(parameters));"
-        context.evaluateScript(script, completion: nil)
+        context?.submitScript(script)
     }
 
     // MARK: Series methods
     
-    func addAreaSeries(options: AreaSeries.Options?) -> AreaSeries {
+public func addAreaSeries(options: AreaSeries.Options?) -> AreaSeries {
         addSeries(options: options ?? AreaSeries.Options())
     }
     
-    func addBarSeries(options: BarSeries.Options?) -> BarSeries {
+public func addBarSeries(options: BarSeries.Options?) -> BarSeries {
         addSeries(options: options ?? BarSeries.Options())
     }
     
-    func addCandlestickSeries(options: CandlestickSeries.Options?) -> CandlestickSeries {
+public func addCandlestickSeries(options: CandlestickSeries.Options?) -> CandlestickSeries {
         addSeries(options: options ?? CandlestickSeries.Options())
     }
     
-    func addHistogramSeries(options: HistogramSeries.Options?) -> HistogramSeries {
+public func addHistogramSeries(options: HistogramSeries.Options?) -> HistogramSeries {
         addSeries(options: options ?? HistogramSeries.Options())
     }
     
-    func addLineSeries(options: LineSeries.Options?) -> LineSeries {
+public func addLineSeries(options: LineSeries.Options?) -> LineSeries {
         addSeries(options: options ?? LineSeries.Options())
     }
     
-    func addBaselineSeries(options: BaselineSeries.Options?) -> BaselineSeries {
+public func addBaselineSeries(options: BaselineSeries.Options?) -> BaselineSeries {
         addSeries(options: options ?? BaselineSeries.Options())
     }
+
+    // MARK: - Series methods with pane index (v5 multi-pane support)
+
+    public func addAreaSeries(options: AreaSeries.Options?, paneIndex: Int) -> AreaSeries {
+        addSeries(options: options ?? AreaSeries.Options(), paneIndex: paneIndex)
+    }
+
+    public func addBarSeries(options: BarSeries.Options?, paneIndex: Int) -> BarSeries {
+        addSeries(options: options ?? BarSeries.Options(), paneIndex: paneIndex)
+    }
+
+    public func addCandlestickSeries(options: CandlestickSeries.Options?, paneIndex: Int) -> CandlestickSeries {
+        addSeries(options: options ?? CandlestickSeries.Options(), paneIndex: paneIndex)
+    }
+
+    public func addHistogramSeries(options: HistogramSeries.Options?, paneIndex: Int) -> HistogramSeries {
+        addSeries(options: options ?? HistogramSeries.Options(), paneIndex: paneIndex)
+    }
+
+    public func addLineSeries(options: LineSeries.Options?, paneIndex: Int) -> LineSeries {
+        addSeries(options: options ?? LineSeries.Options(), paneIndex: paneIndex)
+    }
+
+    public func addBaselineSeries(options: BaselineSeries.Options?, paneIndex: Int) -> BaselineSeries {
+        addSeries(options: options ?? BaselineSeries.Options(), paneIndex: paneIndex)
+    }
+
+    // MARK: - Pane management (v5)
+
+    /// Adds a new pane to the chart.
+    ///
+    /// - Returns: A stable pane handle.
+    public func addPane(preserveEmptyPane: Bool? = nil) async throws(JavaScriptBridgeError) -> PaneApi {
+        let context = try requireContext()
+        let pane = Pane(chartJSName: jsName, context: context, closureStore: closureStore)
+        var parameters = ""
+        if let preserveEmptyPane {
+            parameters = preserveEmptyPane ? "true" : "false"
+        }
+        let script = "window['\(pane.jsName)'] = \(jsName).addPane(\(parameters));"
+        _ = try await context.evaluateScript(script)
+
+        let paneIndexScript = "window['\(pane.jsName)'].paneIndex();"
+        let paneIndex = try await context.evaluate(script: paneIndexScript, resultType: Int.self)
+        if paneIndex < 0 {
+            throw .evaluationFailed(script: paneIndexScript, message: "Added pane returned an invalid pane index.")
+        }
+        return pane
+    }
+
+    public func panes() async throws(JavaScriptBridgeError) -> [PaneApi] {
+        let context = try requireContext()
+        let script = "\(jsName).panes().length;"
+        let count = try await context.evaluate(script: script, resultType: Int.self)
+        return (0..<count).map { index in
+            Pane(index: index, chartJSName: self.jsName, context: context, closureStore: self.closureStore)
+        }
+    }
+
+    public func removePane(index: Int) async throws(JavaScriptBridgeError) {
+        let script = "\(jsName).removePane(\(index));"
+        _ = try await requireContext().evaluateScript(script)
+    }
+
+    public func swapPanes(first: Int, second: Int) async throws(JavaScriptBridgeError) {
+        let script = "\(jsName).swapPanes(\(first), \(second));"
+        _ = try await requireContext().evaluateScript(script)
+    }
     
-    func removeSeries<T: SeriesApi & SeriesObject>(seriesApi: T) {
-        let script = "\(jsName).removeSeries(\(seriesApi.jsName));"
-        context.evaluateScript(script, completion: nil)
+public func removeSeries<T: SeriesApi & SeriesObject>(seriesApi: T) {
+        // Clean up compatibility markers plugin if it exists (task 3.4)
+        // The _lwcMarkersPlugin is stored on the series object by setMarkers
+        let script = """
+        if (typeof \(seriesApi.jsName)._lwcMarkersPlugin !== 'undefined') {
+            \(seriesApi.jsName)._lwcMarkersPlugin.detach();
+            delete \(seriesApi.jsName)._lwcMarkersPlugin;
+        }
+        \(jsName).removeSeries(\(seriesApi.jsName));
+        """
+        context?.submitScript(script)
     }
     
     // MARK: Subscriptions
     
-    func subscribeClick() {
+public func subscribeClick() {
         subscribe(subscription: .click)
     }
     
-    func unsubscribeClick() {
+public func unsubscribeClick() {
         unsubscribe(subsription: .click)
     }
+
+public func subscribeDblClick() {
+        subscribe(subscription: .dblClick)
+    }
+
+public func unsubscribeDblClick() {
+        unsubscribe(subsription: .dblClick)
+    }
     
-    func subscribeCrosshairMove() {
+public func subscribeCrosshairMove() {
         subscribe(subscription: .crosshairMove)
     }
     
-    func unsubscribeCrosshairMove() {
+public func unsubscribeCrosshairMove() {
         unsubscribe(subsription: .crosshairMove)
     }
-    
+
+public func setCrosshairPosition<T: SeriesApi & SeriesObject>(price: Double, horizontalPosition: Time, seriesApi: T) async throws(JavaScriptBridgeError) {
+        let script = """
+        if (typeof \(jsName).setCrosshairPosition !== 'function') {
+            throw new Error('setCrosshairPosition is unavailable for this chart instance.');
+        }
+        \(jsName).setCrosshairPosition(\(price), \(horizontalPosition.jsonString), \(seriesApi.jsName));
+        """
+        _ = try await requireContext().evaluateScript(script)
+    }
+
+public func clearCrosshairPosition() {
+        let script = "\(jsName).clearCrosshairPosition();"
+    context?.submitScript(script)
+    }
+
+    public func paneSize(paneIndex: Int) async throws(JavaScriptBridgeError) -> Rectangle {
+        let script = "\(jsName).paneSize(\(paneIndex));"
+        return try await requireContext().decodedResult(forScript: script)
+    }
+
     // MARK: Other APIs and options methods
     
-    func priceScale(priceScaleId: String?) -> PriceScaleApi {
+    public func priceScale(priceScaleId: String?, paneIndex: Int? = nil) -> PriceScaleApi {
         let priceScale = PriceScale(context: context)
-        let priceScaleId = priceScaleId ?? ""
-        let script = "var \(priceScale.jsName) = \(jsName).priceScale(\(priceScaleId));"
-        context.evaluateScript(script) { _, _ in
+        let priceScaleId = priceScaleId ?? "right"
+        let script: String
+        if let paneIndex {
+            script = "window['\(priceScale.jsName)'] = \(jsName).priceScale(\(priceScaleId.jsonString()), \(paneIndex));"
+        } else {
+            script = "window['\(priceScale.jsName)'] = \(jsName).priceScale(\(priceScaleId.jsonString()));"
         }
+        context?.submitScript(script)
         return priceScale
     }
     
-    func timeScale() -> TimeScaleApi {
+public func timeScale() -> TimeScaleApi {
         let timeScale = TimeScale(context: context, closureStore: closureStore)
         let script = "var \(timeScale.jsName) = \(jsName).timeScale();"
-        context.evaluateScript(script) { _, _ in
-        }
+    context?.submitScript(script)
         return timeScale
     }
     
-    func applyOptions(options: ChartOptions) {
+public func applyOptions(options: ChartOptions) {
+        // Extract watermark before generating options script (task 4.4)
+        let watermark = options._watermark
+
         let optionsScript = options.optionsScript(for: closureStore)
         let script = """
         \(optionsScript.options)
         \(jsName).applyOptions(\(optionsScript.variableName));
         """
-        context.evaluateScript(script, completion: nil)
-    }
-    
-    func options(completion: @escaping (ChartOptions?) -> Void) {
-        let script = "\(jsName).options();"
-        context.decodedResult(forScript: script, completion: completion)
-    }
-    
-    func takeScreenshot(completion: @escaping (UIImage?) -> Void) {
-        let imageFormat = "image/jpeg"
-        let script = "\(jsName).takeScreenshot().toDataURL('\(imageFormat)', 1.0);"
-        context.evaluateScript(script) { (result, error) in
-            DispatchQueue.global().async {
-                var image: UIImage?
-                if error == nil,
-                    let dataString = result as? String,
-                    !dataString.isEmpty {
-                    // format:
-                    // data:[<mediatype>][;base64],<data>
-                    // example
-                    // (data:image/jpeg;base64,/9j/4AAQSkZJRgA
-                    let countToRemove = "data:\(imageFormat);base64,".count
-                    let index = dataString.index(dataString.startIndex, offsetBy: countToRemove)
-                    let base64String = String(dataString[index...])
-                    if let data = Data(base64Encoded: base64String) {
-                        if let screenshot = UIImage(data: data) {
-                            image = screenshot
-                        }
-                    }
-                }
-                completion(image)
+        context?.submitScript(script)
+
+        // Apply legacy watermark compatibility after chart options (task 4.4)
+        if options._watermarkWasExplicitlySet {
+            if let watermark = watermark {
+                applyLegacyWatermark(watermark)
+            } else {
+                removeLegacyWatermark()
             }
         }
     }
-    
+
+    public func options() async throws(JavaScriptBridgeError) -> ChartOptions {
+        let script = "\(jsName).options();"
+        return try await requireContext().decodedResult(forScript: script)
+    }
+
+    public func autoSizeActive() async throws(JavaScriptBridgeError) -> Bool {
+        let script = "\(jsName).autoSizeActive();"
+        return try await requireContext().evaluate(script: script, resultType: Bool.self)
+    }
+
+    public func takeScreenshot(addTopLayer: Bool?, includeCrosshair: Bool?) async throws(JavaScriptBridgeError) -> UIImage {
+        let imageFormat = "image/jpeg"
+        let screenshotCall: String
+        switch (addTopLayer, includeCrosshair) {
+        case let (.some(addTopLayer), .some(includeCrosshair)):
+            screenshotCall = "\(jsName).takeScreenshot(\(addTopLayer), \(includeCrosshair))"
+        case let (.some(addTopLayer), .none):
+            screenshotCall = "\(jsName).takeScreenshot(\(addTopLayer))"
+        case let (.none, .some(includeCrosshair)):
+            screenshotCall = "\(jsName).takeScreenshot(undefined, \(includeCrosshair))"
+        case (.none, .none):
+            screenshotCall = "\(jsName).takeScreenshot()"
+        }
+        let script = "\(screenshotCall).toDataURL('\(imageFormat)', 1.0);"
+        let decodedString = try await requireContext().evaluate(script: script, resultType: String.self)
+        let dataString = decodedString.isEmpty ? nil : decodedString
+        do {
+            let imageData = try await Task.detached(priority: .utility) { () throws -> Data in
+                guard let dataString else {
+                    throw JavaScriptBridgeError.invalidResult(expected: "non-empty image data URL", actual: "nil")
+                }
+
+                let prefix = "data:\(imageFormat);base64,"
+                guard let range = dataString.range(of: prefix) else {
+                    throw JavaScriptBridgeError.invalidResult(expected: "non-empty image data URL", actual: dataString)
+                }
+
+                let base64String = String(dataString[range.upperBound...])
+                guard let data = Data(base64Encoded: base64String) else {
+                    throw JavaScriptBridgeError.invalidResult(expected: "base64 image data", actual: dataString)
+                }
+
+                return data
+            }.value
+
+            guard let image = UIImage(data: imageData) else {
+                throw JavaScriptBridgeError.invalidResult(expected: "decoded UIImage", actual: "invalid image bytes")
+            }
+
+            return image
+        } catch {
+            throw JavaScriptBridgeError.wrap(error, script: "\(jsName).takeScreenshot")
+        }
+    }
+
+    // MARK: - Watermark plugin methods
+
+public func createTextWatermark(paneIndex: Int, options: TextWatermarkOptions) -> TextWatermark {
+        let watermark = TextWatermark(context: context, jsName: "textWatermark" + .uniqueString)
+        let script = paneScopedCreationScript(
+            objectName: watermark.jsName,
+            paneIndex: paneIndex,
+            factoryCall: "LightweightCharts.createTextWatermark(panes[\(paneIndex)], \(options.jsonString()))"
+        )
+        context?.submitScript(script)
+        return watermark
+    }
+
+public func createImageWatermark(paneIndex: Int, imageUrl: String, options: ImageWatermarkOptions) -> ImageWatermark {
+        let watermark = ImageWatermark(context: context, jsName: "imageWatermark" + .uniqueString)
+        let script = paneScopedCreationScript(
+            objectName: watermark.jsName,
+            paneIndex: paneIndex,
+            factoryCall: "LightweightCharts.createImageWatermark(panes[\(paneIndex)], \(imageUrl.jsonString()), \(options.jsonString()))"
+        )
+        context?.submitScript(script)
+        return watermark
+    }
+
+    // MARK: - Plugin Factories
+
+    /// Creates a text watermark plugin on the specified pane.
+    ///
+    /// Immediate follow-up plugin calls are safe because creation and later mutations are
+    /// submitted to the same main-actor bridge in call order.
+    ///
+    /// - Parameters:
+    ///   - paneIndex: The index of the pane to attach the plugin to (0 is the main pane).
+    ///   - options: Initial options for the text watermark.
+    /// - Returns: A new text watermark plugin instance.
+    public func createTextWatermarkPlugin(paneIndex: Int, options: TextWatermarkOptions) -> TextWatermarkPlugin<Chart> {
+        return TextWatermarkPlugin(chart: self, paneIndex: paneIndex, context: context, options: options)
+    }
+
+    /// Creates an image watermark plugin on the specified pane.
+    ///
+    /// Immediate follow-up plugin calls are safe because creation and later mutations are
+    /// submitted to the same main-actor bridge in call order.
+    ///
+    /// - Parameters:
+    ///   - paneIndex: The index of the pane to attach the plugin to (0 is the main pane).
+    ///   - imageUrl: The URL of the image to use as a watermark.
+    ///   - options: Initial options for the image watermark.
+    /// - Returns: A new image watermark plugin instance.
+    public func createImageWatermarkPlugin(
+        paneIndex: Int,
+        imageUrl: String,
+        options: ImageWatermarkOptions = ImageWatermarkOptions()
+    ) -> ImageWatermarkPlugin<Chart> {
+        return ImageWatermarkPlugin(chart: self, paneIndex: paneIndex, imageUrl: imageUrl, context: context, options: options)
+    }
+
 }
 
 // MARK: - MessageHandlerDelegate
@@ -228,11 +655,23 @@ extension Chart: MessageHandlerDelegate {
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveClickWithParameters parameters: MouseEventParams) {
         delegate?.didClick(onChart: self, parameters: parameters)
+        yield(parameters, for: .click)
+    }
+
+    func messageHandler(_ messageHandler: MessageHandler,
+                        didReceiveDblClickWithParameters parameters: MouseEventParams) {
+        delegate?.didDoubleClick(onChart: self, parameters: parameters)
+        yield(parameters, for: .dblClick)
     }
     
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveCrosshairMoveWithParameters parameters: MouseEventParams) {
         delegate?.didCrosshairMove(onChart: self, parameters: parameters)
+        yield(parameters, for: .crosshairMove)
+    }
+
+    func messageHandler(_ messageHandler: MessageHandler,
+                        didReceiveDataChangedWithScope scope: DataChangedScope) {
     }
     
     func messageHandler(_ messageHandler: MessageHandler,
@@ -247,4 +686,156 @@ extension Chart: MessageHandlerDelegate {
     func messageHandler(_ messageHandler: MessageHandler,
                         didReceiveTimeScaleSizeChangeWithParameters parameters: Rectangle?) {
     }
+}
+
+public extension ChartDelegate {
+
+    func didDoubleClick(onChart chart: ChartApi, parameters: MouseEventParams) {
+    }
+
+}
+
+@MainActor
+final class Pane: PaneApi {
+
+    private let chartJSName: String
+    let jsName: String
+    private weak var context: JavaScriptEvaluator?
+    private weak var closureStore: ClosuresStore?
+
+    init(index: Int, chartJSName: String, context: JavaScriptEvaluator?, closureStore: ClosuresStore?) {
+        self.chartJSName = chartJSName
+        self.jsName = "pane" + .uniqueString
+        self.context = context
+        self.closureStore = closureStore
+
+        let script = """
+        (function() {
+            var panes = \(chartJSName).panes();
+            if (!panes || !panes[\(index)]) {
+                throw new Error('Invalid pane index: \(index). Pane does not exist in this chart.');
+            }
+            window['\(jsName)'] = panes[\(index)];
+        })();
+        """
+        context?.submitScript(script)
+    }
+
+    init(chartJSName: String, context: JavaScriptEvaluator?, closureStore: ClosuresStore?) {
+        self.chartJSName = chartJSName
+        self.jsName = "pane" + .uniqueString
+        self.context = context
+        self.closureStore = closureStore
+    }
+
+    private func requireContext() throws(JavaScriptBridgeError) -> JavaScriptEvaluator {
+        guard let context else {
+            throw JavaScriptBridgeError.contextUnavailable
+        }
+        return context
+    }
+
+    private func paneExpression() -> String {
+        "window['\(jsName)']"
+    }
+
+    private func addSeries<T: SeriesApi & SeriesObject>(options: T.Options) -> T {
+        let series = T(context: context, closureStore: closureStore)
+        series.chartJSName = chartJSName
+        let optionsScript = options.optionsScript(for: closureStore)
+        let script = """
+        \(optionsScript.options)
+        window['\(series.jsName)'] = \(paneExpression()).addSeries(LightweightCharts.\(T.name), \(optionsScript.variableName));
+        seriesArray.push({name: "\(series.jsName)", series: window['\(series.jsName)']});
+        """
+        context?.submitScript(script)
+        return series
+    }
+
+    // MARK: - Async methods (Swift 6)
+
+    func size() async throws(JavaScriptBridgeError) -> Rectangle {
+        let paneIndex = try await paneIndex()
+        let script = "\(chartJSName).paneSize(\(paneIndex));"
+        return try await requireContext().decodedResult(forScript: script)
+    }
+
+    func getHeight() async throws(JavaScriptBridgeError) -> Double {
+        let script = "\(paneExpression()).getHeight();"
+        return try await requireContext().evaluate(script: script, resultType: Double.self)
+    }
+
+    func preserveEmptyPane() async throws(JavaScriptBridgeError) -> Bool {
+        let script = "\(paneExpression()).preserveEmptyPane();"
+        return try await requireContext().evaluate(script: script, resultType: Bool.self)
+    }
+
+    func getStretchFactor() async throws(JavaScriptBridgeError) -> Double {
+        let script = "\(paneExpression()).getStretchFactor();"
+        return try await requireContext().evaluate(script: script, resultType: Double.self)
+    }
+
+    func paneIndex() async throws(JavaScriptBridgeError) -> Int {
+        let script = "\(paneExpression()).paneIndex();"
+        let paneIndex = try await requireContext().evaluate(script: script, resultType: Int.self)
+        if paneIndex == -1 {
+            throw JavaScriptBridgeError.evaluationFailed(
+                script: script,
+                message: "Pane is no longer attached to this chart."
+            )
+        }
+        return paneIndex
+    }
+
+    func setHeight(height: Double) async throws(JavaScriptBridgeError) {
+        let script = "\(paneExpression()).setHeight(\(height));"
+        _ = try await requireContext().evaluateScript(script)
+    }
+
+    func moveTo(paneIndex: Int) async throws(JavaScriptBridgeError) {
+        let script = "\(paneExpression()).moveTo(\(paneIndex));"
+        _ = try await requireContext().evaluateScript(script)
+    }
+
+    func setPreserveEmptyPane(preserve: Bool) async throws(JavaScriptBridgeError) {
+        let script = "\(paneExpression()).setPreserveEmptyPane(\(preserve ? "true" : "false"));"
+        _ = try await requireContext().evaluateScript(script)
+    }
+
+    func setStretchFactor(stretchFactor: Double) async throws(JavaScriptBridgeError) {
+        let script = "\(paneExpression()).setStretchFactor(\(stretchFactor));"
+        _ = try await requireContext().evaluateScript(script)
+    }
+
+    func addAreaSeries(options: AreaSeries.Options?) -> AreaSeries {
+        addSeries(options: options ?? AreaSeries.Options())
+    }
+
+    func addBarSeries(options: BarSeries.Options?) -> BarSeries {
+        addSeries(options: options ?? BarSeries.Options())
+    }
+
+    func addCandlestickSeries(options: CandlestickSeries.Options?) -> CandlestickSeries {
+        addSeries(options: options ?? CandlestickSeries.Options())
+    }
+
+    func addHistogramSeries(options: HistogramSeries.Options?) -> HistogramSeries {
+        addSeries(options: options ?? HistogramSeries.Options())
+    }
+
+    func addLineSeries(options: LineSeries.Options?) -> LineSeries {
+        addSeries(options: options ?? LineSeries.Options())
+    }
+
+    func addBaselineSeries(options: BaselineSeries.Options?) -> BaselineSeries {
+        addSeries(options: options ?? BaselineSeries.Options())
+    }
+
+    func priceScale(priceScaleId: String) -> PriceScaleApi {
+        let priceScale = PriceScale(context: context)
+        let script = "window['\(priceScale.jsName)'] = \(paneExpression()).priceScale(\(priceScaleId.jsonString()));"
+        context?.submitScript(script)
+        return priceScale
+    }
+
 }
